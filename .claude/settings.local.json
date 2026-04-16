@@ -23,7 +23,13 @@
       "mcp__43eb085c-6315-4b0c-9bc1-0a50e27bb86d__deploy_edge_function",
       "Bash(curl -s -X POST -H 'Content-Type: application/json' -H 'apikey: sb_publishable_jNidabP2eb6wH4-siaxNDw_5bn6Bivl' -d '{\"reservationId\":\"test-invalid\"}' https://foaimrzqvsgiffmvyebr.supabase.co/functions/v1/create-payment-intent)",
       "mcp__43eb085c-6315-4b0c-9bc1-0a50e27bb86d__list_edge_functions",
-      "mcp__43eb085c-6315-4b0c-9bc1-0a50e27bb86d__list_migrations"
+      "mcp__43eb085c-6315-4b0c-9bc1-0a50e27bb86d__list_migrations",
+      "Bash(pandoc --version)",
+      "Bash(npm list:*)",
+      "Bash(python \"C:/Users/miram/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/baddf19e-5a9e-42cb-8a9c-1f5089eb1603/8babf94f-3cda-4a96-aea1-b4ca092f5132/skills/docx/scripts/office/validate.py\" \"C:/Users/miram/BARCO-PIRATA/entregables/CASO_PRACTICO_Barco_Pirata.docx\")",
+      "Bash(python validate.py /c/Users/miram/BARCO-PIRATA/entregables/CASO_PRACTICO_Barco_Pirata.docx)",
+      "Bash(python -c \"import zipfile; z = zipfile.ZipFile\\('CASO_PRACTICO_Barco_Pirata.docx'\\); print\\('Archivos:', len\\(z.namelist\\(\\)\\)\\); print\\('Estructura OK:', '[Content_Types].xml' in z.namelist\\(\\) and 'word/document.xml' in z.namelist\\(\\)\\); z.close\\(\\)\")",
+      "Bash(ls -lh *.docx)"
     ]
   }
 }

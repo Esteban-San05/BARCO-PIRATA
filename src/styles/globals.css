@@ -1,27 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&family=Pirata+One&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+/* ═══════════════════════════════════════════════════════════════════════
+   Barco Pirata — paleta de 3 colores
+   navy (azul)  →  dominante
+   gold (oro)   →  acento / success
+   pirate (rojo)→  danger / cancelar
+   ═══════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    --color-primary: theme('colors.brand.500');
-    --color-navy: theme('colors.navy.950');
+    --color-primary: theme('colors.navy.900');
+    --color-accent:  theme('colors.gold.400');
+    --color-danger:  theme('colors.pirate.500');
   }
 
   * {
-    @apply border-gray-200;
+    @apply border-navy-100;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply bg-navy-50 text-navy-900 font-sans antialiased;
   }
 
   h1, h2, h3 {
-    @apply font-display;
+    @apply font-display tracking-tight;
+  }
+
+  /* Selección con acento dorado sobre navy */
+  ::selection {
+    @apply bg-gold-300 text-navy-900;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Componentes
+   ═══════════════════════════════════════════════════════════════════════ */
 
 @layer components {
   .container-app {
@@ -29,86 +46,139 @@
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-card p-6;
+    @apply bg-white rounded-xl shadow-card p-6 border border-navy-100;
   }
 
+  /* ─── Botones ────────────────────────────────────────────────────── */
+
+  /* Primario = navy sólido (acción principal segura) */
   .btn-primary {
-    @apply bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-2.5 rounded-lg
-           transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-navy-900 hover:bg-navy-800 text-white font-semibold px-6 py-2.5 rounded-lg
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed shadow-card;
   }
 
-  .btn-secondary {
-    @apply bg-navy-950 hover:bg-navy-800 text-white font-semibold px-6 py-2.5 rounded-lg
-           transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-navy-700 focus:ring-offset-2
-           disabled:opacity-50 disabled:cursor-not-allowed;
+  /* Acento = gold (CTAs de atención: "Reservar", "Pagar") */
+  .btn-accent {
+    @apply bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold px-6 py-2.5 rounded-lg
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed shadow-gold;
   }
 
+  /* Peligro = pirate (cancelar, eliminar) */
+  .btn-danger {
+    @apply bg-pirate-500 hover:bg-pirate-600 text-white font-semibold px-6 py-2.5 rounded-lg
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pirate-400 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed shadow-pirate;
+  }
+
+  /* Outline — variante sutil con borde navy */
   .btn-outline {
-    @apply border-2 border-brand-500 text-brand-600 hover:bg-brand-50 font-semibold px-6 py-2.5 rounded-lg
-           transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2
+    @apply border-2 border-navy-900 text-navy-900 hover:bg-navy-900 hover:text-white font-semibold px-6 py-2.5 rounded-lg
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-2
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
+  /* Ghost — para navegaciones secundarias */
+  .btn-ghost {
+    @apply text-navy-700 hover:bg-navy-100 font-medium px-4 py-2 rounded-lg
+           transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-navy-300;
+  }
+
+  /* ─── Formularios ────────────────────────────────────────────────── */
   .input-field {
-    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900
-           placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent
-           transition-shadow duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed;
+    @apply w-full px-4 py-2.5 border border-navy-200 rounded-lg bg-white text-navy-900
+           placeholder-navy-400 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent
+           transition-shadow duration-200 disabled:bg-navy-50 disabled:cursor-not-allowed;
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1.5;
+    @apply block text-sm font-semibold text-navy-800 mb-1.5;
   }
 
   .error-message {
-    @apply text-sm text-red-500 mt-1;
+    @apply text-sm text-pirate-600 mt-1 font-medium;
   }
 
+  /* ─── Badges ─────────────────────────────────────────────────────── */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border;
   }
 
+  /* success = oro pirata conseguido (pagada) */
   .badge-success {
-    @apply badge bg-green-100 text-green-800;
+    @apply badge bg-gold-100 text-gold-900 border-gold-300;
   }
 
+  /* warning = amarillo claro (pendiente) */
   .badge-warning {
-    @apply badge bg-yellow-100 text-yellow-800;
+    @apply badge bg-gold-50 text-gold-800 border-gold-200;
   }
 
+  /* danger = rojo (cancelada, error) */
   .badge-danger {
-    @apply badge bg-red-100 text-red-800;
+    @apply badge bg-pirate-100 text-pirate-800 border-pirate-300;
   }
 
+  /* info = azul (confirmada) */
   .badge-info {
-    @apply badge bg-blue-100 text-blue-800;
+    @apply badge bg-navy-100 text-navy-900 border-navy-300;
+  }
+
+  /* ─── Paneles temáticos ──────────────────────────────────────────── */
+  .panel-dark {
+    @apply bg-navy-900 text-white rounded-xl p-6 shadow-card-lg;
+  }
+
+  .panel-gold {
+    @apply bg-gold-50 border border-gold-300 text-navy-900 rounded-xl p-5;
+  }
+
+  .panel-danger {
+    @apply bg-pirate-50 border border-pirate-200 text-pirate-800 rounded-xl p-4;
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Utilidades
+   ═══════════════════════════════════════════════════════════════════════ */
+
 @layer utilities {
   .wave-bg {
-    background: linear-gradient(135deg, theme('colors.navy.950') 0%, theme('colors.ocean.600') 100%);
+    @apply bg-wave-gradient;
   }
 
   .glass {
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
+
+  /* Texto dorado con shimmer sutil (para títulos hero) */
+  .text-gold-shimmer {
+    background: linear-gradient(90deg, #F7C948, #F0B429 50%, #F7C948);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 3s linear infinite;
+  }
+
+  /* Separador decorativo con ornamento pirata */
+  .rope-divider {
+    @apply relative border-t-2 border-dashed border-navy-300;
+  }
 }
 
-/* Scrollbar personalizado */
+/* Scrollbar con tonos navy */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-navy-50;
 }
-
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-navy-300 rounded-full;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-navy-500;
 }

@@ -22,7 +22,7 @@ export default function ReportsPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <h1 className="text-2xl font-display font-bold text-navy-950">Reportes</h1>
+        <h1 className="text-2xl font-display font-bold text-navy-900">Reportes</h1>
         <div className="flex items-center gap-3">
           <input
             type="date"
@@ -44,30 +44,34 @@ export default function ReportsPage() {
       </div>
 
       {isLoading && <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>}
-      {isError && <p className="text-red-500 text-center py-12">Error al cargar el reporte.</p>}
+      {isError && (
+        <div className="panel-danger text-center">
+          Error al cargar el reporte.
+        </div>
+      )}
 
       {report && (
         <div className="space-y-6">
           {/* Resumen general */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Reservaciones', value: report.totalReservations },
-              { label: 'Personas totales', value: report.totalPeople },
-              { label: 'Ingresos totales', value: formatCurrency(report.totalRevenue) },
-              { label: 'Fecha', value: formatDate(report.date) },
-            ].map(({ label, value }) => (
-              <Card key={label} className="text-center">
-                <p className="text-xs text-gray-500 mb-1">{label}</p>
-                <p className="text-xl font-bold text-navy-950">{value}</p>
+              { label: 'Reservaciones',    value: report.totalReservations,            accent: false },
+              { label: 'Personas totales', value: report.totalPeople,                  accent: false },
+              { label: 'Ingresos totales', value: formatCurrency(report.totalRevenue), accent: true  },
+              { label: 'Fecha',            value: formatDate(report.date),             accent: false },
+            ].map(({ label, value, accent }) => (
+              <Card key={label} className={`text-center border ${accent ? 'border-gold-300 bg-gold-50' : 'border-navy-100'}`}>
+                <p className="text-xs text-navy-500 mb-1">{label}</p>
+                <p className={`text-xl font-bold ${accent ? 'text-gold-700' : 'text-navy-900'}`}>{value}</p>
               </Card>
             ))}
           </div>
 
           {/* Por paquete */}
-          <Card>
+          <Card className="border border-navy-100">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-brand-500" />
+                <BarChart3 className="w-5 h-5 text-gold-600" />
                 <CardTitle>Por Paquete</CardTitle>
               </div>
             </CardHeader>
@@ -80,12 +84,12 @@ export default function ReportsPage() {
                 return (
                   <div key={pkgId}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">{pkg.icon} {pkg.label}</span>
-                      <span className="text-gray-500">{stats.count} reserv. · {formatCurrency(stats.revenue)}</span>
+                      <span className="font-medium text-navy-900">{pkg.icon} {pkg.label}</span>
+                      <span className="text-navy-500">{stats.count} reserv. · {formatCurrency(stats.revenue)}</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-navy-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                        className="h-full bg-gold-gradient rounded-full transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -96,15 +100,15 @@ export default function ReportsPage() {
           </Card>
 
           {/* Por método de pago */}
-          <Card>
+          <Card className="border border-navy-100">
             <CardHeader><CardTitle>Por Método de Pago</CardTitle></CardHeader>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-navy-100">
               {Object.entries(report.byPaymentMethod).map(([method, stats]) => (
                 <div key={method} className="flex justify-between py-3 text-sm">
-                  <span className="capitalize font-medium">{method.replace('_', ' ')}</span>
+                  <span className="capitalize font-medium text-navy-900">{method.replace('_', ' ')}</span>
                   <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(stats.revenue)}</p>
-                    <p className="text-xs text-gray-400">{stats.count} transacción(es)</p>
+                    <p className="font-semibold text-gold-700">{formatCurrency(stats.revenue)}</p>
+                    <p className="text-xs text-navy-400">{stats.count} transacción(es)</p>
                   </div>
                 </div>
               ))}

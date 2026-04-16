@@ -20,7 +20,7 @@ export default function SalePage() {
   const [paid, setPaid] = useState(false)
 
   if (isLoading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
-  if (!reservation) return <div className="text-center py-20 text-gray-500">Reservación no encontrada.</div>
+  if (!reservation) return <div className="text-center py-20 text-navy-500">Reservación no encontrada.</div>
 
   const pkg = PACKAGES[reservation.packageId as PackageId]
   const isPagada = reservation.status === 'pagada' || paid
@@ -36,14 +36,14 @@ export default function SalePage() {
     <div>
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+        className="flex items-center gap-2 text-navy-500 hover:text-navy-900 mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Volver
       </button>
 
       <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-display font-bold text-navy-950">Comprobante de Venta</h1>
+          <h1 className="text-2xl font-display font-bold text-navy-900">Comprobante de Venta</h1>
           {isPagada && (
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="w-4 h-4" /> Imprimir
@@ -52,18 +52,18 @@ export default function SalePage() {
         </div>
 
         {/* Comprobante */}
-        <Card id="receipt" className="print:shadow-none">
+        <Card id="receipt" className="print:shadow-none border border-navy-100">
           {/* Encabezado comprobante */}
-          <div className="text-center border-b border-gray-100 pb-5 mb-5">
-            <p className="font-display font-bold text-xl text-navy-950">{COMPANY.name}</p>
-            <p className="text-sm text-gray-500">{COMPANY.location}</p>
-            <p className="text-sm text-gray-500">{COMPANY.phone}</p>
+          <div className="text-center border-b border-navy-100 pb-5 mb-5">
+            <p className="font-display font-bold text-xl text-navy-900">{COMPANY.name}</p>
+            <p className="text-sm text-navy-500">{COMPANY.location}</p>
+            <p className="text-sm text-navy-500">{COMPANY.phone}</p>
           </div>
 
           {isPagada && (
-            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-3 mb-5">
-              <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
-              <p className="text-green-700 font-medium text-sm">Pago confirmado</p>
+            <div className="flex items-center gap-2 bg-gold-50 border border-gold-300 rounded-lg p-3 mb-5 shadow-gold">
+              <CheckCircle className="w-5 h-5 text-gold-600 shrink-0" />
+              <p className="text-navy-900 font-semibold text-sm">Pago confirmado</p>
             </div>
           )}
 
@@ -91,35 +91,35 @@ export default function SalePage() {
             )}
           </div>
 
-          <div className="border-t border-dashed border-gray-200 pt-4 space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-500">
+          <div className="rope-divider pt-4 space-y-1.5 text-sm">
+            <div className="flex justify-between text-navy-600">
               <span>Subtotal</span><span>{formatCurrency(reservation.subtotal)}</span>
             </div>
             {reservation.discount > 0 && (
-              <div className="flex justify-between text-green-600">
+              <div className="flex justify-between text-gold-700 font-semibold">
                 <span>Descuento grupal (10%)</span>
                 <span>-{formatCurrency(reservation.discount)}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-2 mt-2">
-              <span>TOTAL</span>
-              <span className="text-brand-600">{formatCurrency(reservation.total)}</span>
+            <div className="flex justify-between font-bold text-lg border-t border-navy-200 pt-2 mt-2">
+              <span className="text-navy-900">TOTAL</span>
+              <span className="text-gold-600">{formatCurrency(reservation.total)}</span>
             </div>
           </div>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            Folio: {reservation.id.slice(0, 8).toUpperCase()}
+          <p className="text-center text-xs text-navy-400 mt-6">
+            Folio: <span className="font-mono text-navy-600">{reservation.id.slice(0, 8).toUpperCase()}</span>
           </p>
         </Card>
 
         {/* Acción de cobro (solo si pendiente) */}
         {!isPagada && (
-          <Card className="mt-4">
-            <p className="text-gray-600 text-sm mb-4">
+          <Card className="mt-4 border border-navy-100">
+            <p className="text-navy-600 text-sm mb-4">
               Confirma el pago en efectivo una vez que el cliente haya liquidado el monto total.
             </p>
             <div className="flex gap-3">
-              <Button onClick={handleConfirmCash} isLoading={isPending} className="flex-1">
+              <Button variant="accent" onClick={handleConfirmCash} isLoading={isPending} className="flex-1">
                 <Banknote className="w-4 h-4" /> Confirmar Pago en Efectivo
               </Button>
               <Button
@@ -140,8 +140,8 @@ export default function SalePage() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium text-gray-800">{value}</span>
+      <span className="text-navy-500">{label}</span>
+      <span className="font-medium text-navy-900">{value}</span>
     </div>
   )
 }

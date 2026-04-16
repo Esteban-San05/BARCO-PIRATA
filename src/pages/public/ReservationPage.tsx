@@ -42,7 +42,7 @@ export default function ReservationPage() {
 
   return (
     <div className="container-app py-12 max-w-2xl">
-      <h1 className="text-3xl font-display font-bold text-navy-950 mb-8 text-center">
+      <h1 className="text-3xl font-display font-bold text-navy-900 mb-8 text-center">
         Hacer una Reservación
       </h1>
 
@@ -97,26 +97,26 @@ export default function ReservationPage() {
           <div className="space-y-4">
             <div>
               <label className="label">
-                Paquete <span className="text-red-500">*</span>
+                Paquete <span className="text-pirate-500">*</span>
               </label>
               <div className="grid gap-3">
                 {Object.values(PACKAGES).map((pkg) => (
                   <label
                     key={pkg.id}
-                    className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:border-brand-400 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 transition-colors"
+                    className="flex items-center gap-3 p-3 border border-navy-200 rounded-lg cursor-pointer hover:border-gold-400 has-[:checked]:border-gold-500 has-[:checked]:bg-gold-50 transition-colors"
                   >
                     <input
                       type="radio"
                       value={pkg.id.toUpperCase().replace(/ /g, '_')}
                       {...register('packageId')}
-                      className="accent-brand-500"
+                      className="accent-gold-500"
                     />
                     <span className="text-xl">{pkg.icon}</span>
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{pkg.label}</p>
-                      <p className="text-xs text-gray-500">{pkg.description}</p>
+                      <p className="font-medium text-sm text-navy-900">{pkg.label}</p>
+                      <p className="text-xs text-navy-500">{pkg.description}</p>
                     </div>
-                    <span className="font-bold text-brand-600">{formatCurrency(pkg.pricePerPerson)}/persona</span>
+                    <span className="font-bold text-gold-700">{formatCurrency(pkg.pricePerPerson)}/persona</span>
                   </label>
                 ))}
               </div>
@@ -145,28 +145,28 @@ export default function ReservationPage() {
 
         {/* Resumen de precio */}
         {pricing && (
-          <Card className="bg-navy-950 text-white">
-            <h3 className="font-semibold mb-3">Resumen</h3>
+          <Card className="panel-dark">
+            <h3 className="font-semibold mb-3 text-gold-400 font-display text-lg">Resumen</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Subtotal</span>
+                <span className="text-navy-200">Subtotal</span>
                 <span>{formatCurrency(pricing.subtotal)}</span>
               </div>
               {pricing.hasGroupDiscount && (
-                <div className="flex justify-between text-green-400">
+                <div className="flex justify-between text-gold-300">
                   <span>Descuento grupal (10%)</span>
                   <span>-{formatCurrency(pricing.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-lg font-bold border-t border-white/20 pt-2 mt-2">
                 <span>Total</span>
-                <span className="text-brand-400">{formatCurrency(pricing.total)}</span>
+                <span className="text-gold-400">{formatCurrency(pricing.total)}</span>
               </div>
             </div>
           </Card>
         )}
 
-        <Button type="submit" isLoading={isPending} className="w-full" size="lg">
+        <Button type="submit" variant="accent" isLoading={isPending} className="w-full" size="lg">
           Enviar Reservación
         </Button>
       </form>

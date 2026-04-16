@@ -8,11 +8,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary:   'bg-brand-500 hover:bg-brand-600 text-white focus:ring-brand-400',
-        secondary: 'bg-navy-950 hover:bg-navy-800 text-white focus:ring-navy-700',
-        outline:   'border-2 border-brand-500 text-brand-600 hover:bg-brand-50 focus:ring-brand-400',
-        ghost:     'text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-300',
-        danger:    'bg-red-500 hover:bg-red-600 text-white focus:ring-red-400',
+        // Primario = navy sólido (acción principal dominante)
+        primary:   'bg-navy-900 hover:bg-navy-800 text-white shadow-card focus:ring-navy-400',
+        // Acento = oro pirata (CTAs: "Reservar ahora", "Pagar")
+        accent:    'bg-gold-400 hover:bg-gold-500 text-navy-900 font-bold shadow-gold focus:ring-gold-300',
+        // Secundario = navy claro (botones alternos)
+        secondary: 'bg-navy-100 hover:bg-navy-200 text-navy-900 focus:ring-navy-300',
+        // Outline = borde navy
+        outline:   'border-2 border-navy-900 text-navy-900 hover:bg-navy-900 hover:text-white focus:ring-navy-400',
+        // Ghost = sin fondo, para navegación secundaria
+        ghost:     'text-navy-700 hover:bg-navy-100 hover:text-navy-900 focus:ring-navy-300',
+        // Danger = rojo pirata (cancelar, eliminar)
+        danger:    'bg-pirate-500 hover:bg-pirate-600 text-white shadow-pirate focus:ring-pirate-400',
       },
       size: {
         sm: 'text-xs px-3 py-1.5',

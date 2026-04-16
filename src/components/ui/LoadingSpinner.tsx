@@ -17,7 +17,7 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
       role="status"
       aria-label="Cargando"
       className={clsx(
-        'rounded-full border-gray-200 border-t-brand-500 animate-spin',
+        'rounded-full border-navy-100 border-t-gold-500 animate-spin',
         sizes[size],
         className
       )}

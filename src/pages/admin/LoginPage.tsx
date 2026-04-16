@@ -40,24 +40,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen wave-bg flex items-center justify-center px-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen wave-bg flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Halo dorado decorativo */}
+      <div className="absolute inset-0 bg-treasure-glow pointer-events-none" />
+
+      <div className="w-full max-w-md animate-fade-in relative">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <div className="bg-white/10 p-4 rounded-2xl">
-              <Anchor className="w-10 h-10 text-brand-400" />
+            <div className="bg-gold-400/10 border border-gold-400/30 p-4 rounded-2xl">
+              <Anchor className="w-10 h-10 text-gold-400" />
             </div>
           </div>
-          <h1 className="text-2xl font-display font-bold text-white">{COMPANY.shortName}</h1>
-          <p className="text-gray-400 mt-1 text-sm">Panel de Administración</p>
+          <h1 className="text-2xl font-display font-bold text-gold-shimmer">{COMPANY.shortName}</h1>
+          <p className="text-navy-200 mt-1 text-sm">Panel de Administración</p>
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-2xl shadow-modal p-8">
+        <div className="bg-white rounded-2xl shadow-modal p-8 border border-gold-200">
           <div className="flex items-center gap-2 mb-6">
-            <Lock className="w-5 h-5 text-navy-950" />
-            <h2 className="text-lg font-semibold text-navy-950">Iniciar Sesión</h2>
+            <Lock className="w-5 h-5 text-navy-900" />
+            <h2 className="text-lg font-semibold text-navy-900">Iniciar Sesión</h2>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -80,7 +83,7 @@ export default function LoginPage() {
             />
 
             {authError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+              <div className="panel-danger text-sm">
                 {authError}
               </div>
             )}

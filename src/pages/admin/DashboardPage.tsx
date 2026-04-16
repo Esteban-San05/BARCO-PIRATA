@@ -18,19 +18,24 @@ export default function DashboardPage() {
     .reduce((sum, r) => sum + r.total, 0)
   const totalPeople = reservations.reduce((sum, r) => sum + r.numberOfPeople, 0)
 
+  // Paleta pirata: navy para métricas neutras, gold para dinero, pirate para alertas si hubiera
   const stats = [
-    { label: 'Reservaciones', value: reservations.length, icon: CalendarCheck, color: 'text-blue-500' },
-    { label: 'Personas', value: totalPeople, icon: Users, color: 'text-purple-500' },
-    { label: 'Ingresos del día', value: formatCurrency(totalRevenue), icon: DollarSign, color: 'text-green-500' },
-    { label: 'Tasa de pago', value: `${reservations.length ? Math.round((reservations.filter(r => r.status === 'pagada').length / reservations.length) * 100) : 0}%`, icon: TrendingUp, color: 'text-brand-500' },
+    { label: 'Reservaciones',    value: reservations.length,        icon: CalendarCheck, iconBg: 'bg-navy-100',   iconColor: 'text-navy-700'  },
+    { label: 'Personas',         value: totalPeople,                icon: Users,         iconBg: 'bg-navy-100',   iconColor: 'text-navy-700'  },
+    { label: 'Ingresos del día', value: formatCurrency(totalRevenue), icon: DollarSign,  iconBg: 'bg-gold-100',   iconColor: 'text-gold-700'  },
+    {
+      label: 'Tasa de pago',
+      value: `${reservations.length ? Math.round((reservations.filter(r => r.status === 'pagada').length / reservations.length) * 100) : 0}%`,
+      icon: TrendingUp, iconBg: 'bg-gold-100', iconColor: 'text-gold-700'
+    },
   ]
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-display font-bold text-navy-950">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Resumen del día seleccionado</p>
+          <h1 className="text-2xl font-display font-bold text-navy-900">Dashboard</h1>
+          <p className="text-navy-500 text-sm mt-1">Resumen del día seleccionado</p>
         </div>
         <input
           type="date"
@@ -42,21 +47,21 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="flex items-center gap-4">
-            <div className={`p-2.5 rounded-lg bg-gray-100 ${color}`}>
+        {stats.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
+          <Card key={label} className="flex items-center gap-4 border border-navy-100">
+            <div className={`p-2.5 rounded-lg ${iconBg} ${iconColor}`}>
               <Icon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">{label}</p>
-              <p className="text-xl font-bold text-navy-950">{value}</p>
+              <p className="text-xs text-navy-500">{label}</p>
+              <p className="text-xl font-bold text-navy-900">{value}</p>
             </div>
           </Card>
         ))}
       </div>
 
       {/* Tabla de reservaciones */}
-      <Card padding="none">
+      <Card padding="none" className="border border-navy-100">
         <CardHeader className="px-6 pt-6">
           <div className="flex justify-between items-center">
             <CardTitle>Reservaciones – {formatDate(selectedDate)}</CardTitle>
@@ -69,25 +74,25 @@ export default function DashboardPage() {
         {isLoading ? (
           <div className="flex justify-center py-12"><LoadingSpinner /></div>
         ) : reservations.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">No hay reservaciones para esta fecha.</p>
+          <p className="text-center text-navy-400 py-12">No hay reservaciones para esta fecha.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <thead className="bg-navy-50 text-navy-600 text-xs uppercase">
                 <tr>
                   {['Nombre', 'Hora', 'Personas', 'Paquete', 'Total', 'Estado', 'Acción'].map((h) => (
                     <th key={h} className="px-6 py-3 text-left font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-navy-100">
                 {reservations.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium">{r.contactName}</td>
-                    <td className="px-6 py-4 text-gray-500">{r.time}</td>
-                    <td className="px-6 py-4">{r.numberOfPeople}</td>
-                    <td className="px-6 py-4 text-gray-500">{r.packageId.replace(/_/g, ' ')}</td>
-                    <td className="px-6 py-4 font-semibold">{formatCurrency(r.total)}</td>
+                  <tr key={r.id} className="hover:bg-navy-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-navy-900">{r.contactName}</td>
+                    <td className="px-6 py-4 text-navy-600">{r.time}</td>
+                    <td className="px-6 py-4 text-navy-700">{r.numberOfPeople}</td>
+                    <td className="px-6 py-4 text-navy-600">{r.packageId.replace(/_/g, ' ')}</td>
+                    <td className="px-6 py-4 font-semibold text-gold-700">{formatCurrency(r.total)}</td>
                     <td className="px-6 py-4"><StatusBadge status={r.status} /></td>
                     <td className="px-6 py-4">
                       <Link to={`/admin/venta/${r.id}`}>

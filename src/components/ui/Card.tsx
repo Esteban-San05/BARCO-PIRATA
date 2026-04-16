@@ -25,7 +25,7 @@ export function Card({ children, className, padding = 'md', id }: CardProps) {
 
 export function CardHeader({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={clsx('mb-5 pb-4 border-b border-gray-100', className)}>
+    <div className={clsx('mb-5 pb-4 border-b border-navy-100', className)}>
       {children}
     </div>
   )
@@ -33,7 +33,7 @@ export function CardHeader({ children, className }: { children: ReactNode; class
 
 export function CardTitle({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <h2 className={clsx('text-lg font-semibold text-gray-800', className)}>
+    <h2 className={clsx('text-lg font-semibold text-navy-900', className)}>
       {children}
     </h2>
   )
