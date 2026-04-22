@@ -29,23 +29,33 @@ const mapRow = (row: Record<string, unknown>): Reservation => ({
 export const reservationService = {
   async create(dto: CreateReservationDto): Promise<Reservation> {
     const clean = sanitizeObject(dto)
+
+    // Rate limiting: máximo 3 reservaciones por teléfono en la última hora
+    const { data: allowed, error: rlError } = await supabase
+      .rpc('check_phone_rate_limit', { p_phone: clean.contactPhone })
+    if (rlError) console.warn('[reservationService] rate limit check failed:', rlError.message)
+    if (allowed === false) {
+      throw new Error('Has excedido el límite de reservaciones. Intenta de nuevo en una hora.')
+    }
+
     const pricing = calculatePrice(clean.packageId as PackageId, clean.numberOfPeople)
 
     const { data, error } = await supabase
       .from('reservations')
       .insert({
-        contact_name: clean.contactName,
-        contact_phone: clean.contactPhone,
-        date: clean.date,
-        time: clean.time,
+        contact_name:     clean.contactName,
+        contact_phone:    clean.contactPhone,
+        contact_email:    clean.contactEmail?.trim().toLowerCase() ?? null,
+        date:             clean.date,
+        time:             clean.time,
         number_of_people: clean.numberOfPeople,
-        package_id: clean.packageId,
-        service_type: clean.numberOfPeople >= 5 ? 'grupal' : 'individual',
-        subtotal: pricing.subtotal,
-        discount: pricing.discount,
-        total: pricing.total,
-        status: 'pendiente',
-        notes: clean.notes ?? null,
+        package_id:       clean.packageId,
+        service_type:     clean.numberOfPeople >= 5 ? 'grupal' : 'individual',
+        subtotal:         pricing.subtotal,
+        discount:         pricing.discount,
+        total:            pricing.total,
+        status:           'pendiente',
+        notes:            clean.notes ?? null,
       })
       .select()
       .single()

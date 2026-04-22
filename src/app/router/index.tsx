@@ -19,6 +19,7 @@ const ReservationsPage   = lazy(() => import('@pages/admin/ReservationsPage'))
 const SalePage           = lazy(() => import('@pages/admin/SalePage'))
 const ReportsPage        = lazy(() => import('@pages/admin/ReportsPage'))
 const AdminSettingsPage  = lazy(() => import('@pages/admin/AdminSettingsPage'))
+const SchedulePage       = lazy(() => import('@pages/admin/SchedulePage'))
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       { path: '/admin/venta/:reservationId',     element: withSuspense(<SalePage />) },
       { path: '/admin/reportes',                 element: withSuspense(<ReportsPage />) },
       { path: '/admin/ajustes',                  element: withSuspense(<AdminSettingsPage />) },
+      { path: '/admin/horarios',                 element: withSuspense(<SchedulePage />) },
     ],
   },
 

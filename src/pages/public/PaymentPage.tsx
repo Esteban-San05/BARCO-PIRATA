@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   CreditCard, Banknote, CheckCircle, Lock, ShieldCheck,
@@ -48,6 +48,11 @@ export default function PaymentPage() {
   const [emailError, setEmailError] = useState<string | null>(null)
   const { mutateAsync: processPayment, isPending: processing } = useProcessPayment()
   const navigate = useNavigate()
+
+  // Pre-llena el correo si el cliente ya lo proporcionó al reservar
+  useEffect(() => {
+    if (reservation?.contactEmail) setEmail(reservation.contactEmail)
+  }, [reservation?.contactEmail])
 
   if (isLoading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
   if (!reservation) return <div className="text-center py-20 text-navy-500">{t('payment.notFound')}</div>

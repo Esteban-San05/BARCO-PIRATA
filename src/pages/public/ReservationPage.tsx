@@ -8,6 +8,8 @@ import { format } from 'date-fns'
 import { getReservationSchema, type ReservationFormValues } from '@utils/validators/reservation'
 import { useCreateReservation } from '@features/reservations/hooks/useReservations'
 import { useReservationStore } from '@app/store/reservationStore'
+import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
+import { receiptService } from '@features/payments/services/receiptService'
 import { calculatePrice } from '@utils/pricing'
 import { formatCurrency } from '@utils/formatters'
 import { PACKAGES, DISCOUNT_MIN_PEOPLE, BOAT_CAPACITY, MAX_ADVANCE_DAYS } from '@constants/index'
@@ -24,18 +26,15 @@ export default function ReservationPage() {
   const [searchParams] = useSearchParams()
   const { mutateAsync: createReservation, isPending } = useCreateReservation()
   const setPendingReservation = useReservationStore((s) => s.setPendingReservation)
+  const { data: bizSettings } = useBusinessSettings()
   const [serverError, setServerError] = useState<string | null>(null)
 
-  // Reconstruye el schema cuando cambia el idioma para que los mensajes
-  // de validación se traduzcan en vivo.
   const schema = useMemo(() => getReservationSchema(), [i18n.language])
 
-  // Lee ?date=YYYY-MM-DD del query string. Si no es válido, default = hoy.
   const initialDate = useMemo(() => {
     const raw = searchParams.get('date')
     const today = format(new Date(), 'yyyy-MM-dd')
     const maxIso = format(new Date(Date.now() + MAX_ADVANCE_DAYS * 86400_000), 'yyyy-MM-dd')
-    // Valida formato y rango
     if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) && raw >= today && raw <= maxIso) {
       return raw
     }
@@ -55,11 +54,9 @@ export default function ReservationPage() {
       serviceType:    'individual',
       numberOfPeople: 1,
       date:           initialDate,
-      // time se deja undefined — el usuario debe elegir
     },
   })
 
-  // Si el query param cambia (p. ej. el usuario navega de un CTA a otro), reflejarlo en el form.
   useEffect(() => {
     setValue('date', initialDate)
   }, [initialDate, setValue])
@@ -78,9 +75,14 @@ export default function ReservationPage() {
         serviceType: values.numberOfPeople >= DISCOUNT_MIN_PEOPLE ? 'grupal' : 'individual',
       })
       setPendingReservation(reservation)
+
+      // Envío de confirmación de reserva (no bloquea la navegación si falla)
+      receiptService.send(reservation.id, values.contactEmail).catch((e) =>
+        console.warn('[ReservationPage] receipt send failed:', e)
+      )
+
       navigate('/reservar/confirmacion')
     } catch (err) {
-      // El servidor (trigger) pudo rechazar por capacidad
       const msg = err instanceof Error ? err.message : t('reservation.errors.generic')
       if (/capacidad excedida/i.test(msg)) {
         setServerError(t('reservation.errors.capacity'))
@@ -91,6 +93,8 @@ export default function ReservationPage() {
       }
     }
   }
+
+  const closedWeekday = bizSettings?.closedWeekday ?? 1
 
   return (
     <div className="container-app py-12 max-w-3xl">
@@ -125,9 +129,9 @@ export default function ReservationPage() {
                   value={field.value || null}
                   onChange={(iso) => {
                     field.onChange(iso)
-                    // Reset del time al cambiar la fecha (puede tener diferente disponibilidad)
                     setValue('time', '' as unknown as ReservationFormValues['time'])
                   }}
+                  closedWeekday={closedWeekday}
                   error={errors.date?.message}
                 />
               )}
@@ -228,6 +232,15 @@ export default function ReservationPage() {
               error={errors.contactPhone?.message}
             />
             <Input
+              label="Correo electrónico"
+              type="email"
+              required
+              placeholder="tu@correo.com"
+              hint="Te enviaremos la confirmación de tu reserva"
+              {...register('contactEmail')}
+              error={errors.contactEmail?.message}
+            />
+            <Input
               label={t('reservation.notes')}
               placeholder={t('reservation.notesPlaceholder')}
               {...register('notes')}
@@ -261,7 +274,6 @@ export default function ReservationPage() {
           </Card>
         )}
 
-        {/* ─── Error del servidor (overbooking, etc.) ─────────────── */}
         {serverError && (
           <div className="panel-danger flex items-start gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />

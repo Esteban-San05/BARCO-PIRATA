@@ -55,6 +55,12 @@ function buildReservationSchema() {
 
     serviceType: z.enum(['individual', 'grupal']),
 
+    contactEmail: z
+      .string()
+      .min(1, 'El correo electrónico es requerido')
+      .email('Ingresa un correo electrónico válido')
+      .max(254, 'Correo demasiado largo'),
+
     notes: z.string().max(500, tt('validation.notesMax')).optional(),
   })
 }

@@ -86,32 +86,32 @@ export function CalendarPicker({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      {/* Blur/oscuro */}
-      <div className="absolute inset-0 bg-navy-950/70 backdrop-blur-sm" />
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* ── Panel del calendario ── */}
       <div
         className="relative z-10 w-full max-w-sm animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Borde dorado con gradiente */}
-        <div className="rounded-2xl bg-gold-gradient p-[2px] shadow-modal">
-          <div className="rounded-2xl bg-navy-900 overflow-hidden">
+        {/* Borde dorado sutil */}
+        <div className="rounded-2xl bg-gradient-to-br from-gold-400/60 to-gold-600/30 p-[1.5px] shadow-modal">
+          <div className="rounded-2xl bg-[#fdf8f0] overflow-hidden">
 
             {/* ── Cabecera ── */}
-            <div className="bg-wave-gradient px-5 pt-5 pb-4">
+            <div className="bg-[#f5ead8] border-b border-[#e8d5b0]/60 px-5 pt-5 pb-4">
               {/* Título + cierre */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <CalendarDays className="w-5 h-5 text-gold-400" />
-                  <span className="font-display text-gold-400 text-sm font-bold tracking-widest uppercase">
+                  <CalendarDays className="w-5 h-5 text-gold-600" />
+                  <span className="font-display text-gold-700 text-sm font-bold tracking-widest uppercase">
                     Seleccionar Fecha
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-navy-300 hover:text-gold-400 hover:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-lg text-stone-400 hover:text-gold-600 hover:bg-black/5 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -123,12 +123,12 @@ export function CalendarPicker({
                   type="button"
                   onClick={() => prevOk && setViewMonth(subMonths(viewMonth, 1))}
                   disabled={!prevOk}
-                  className="p-2 rounded-xl border border-white/20 text-white hover:border-gold-400 hover:text-gold-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-xl border border-[#d4b88a]/50 text-stone-500 hover:border-gold-500 hover:text-gold-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                <span className="font-display font-bold text-white tracking-wider capitalize">
+                <span className="font-display font-bold text-stone-800 tracking-wider capitalize">
                   {format(viewMonth, 'MMMM yyyy', { locale: dfLocale })}
                 </span>
 
@@ -136,7 +136,7 @@ export function CalendarPicker({
                   type="button"
                   onClick={() => nextOk && setViewMonth(addMonths(viewMonth, 1))}
                   disabled={!nextOk}
-                  className="p-2 rounded-xl border border-white/20 text-white hover:border-gold-400 hover:text-gold-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-xl border border-[#d4b88a]/50 text-stone-500 hover:border-gold-500 hover:text-gold-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -144,14 +144,14 @@ export function CalendarPicker({
             </div>
 
             {/* ── Cuerpo del calendario ── */}
-            <div className="px-4 pb-5 pt-3">
+            <div className="px-4 pb-5 pt-3 bg-[#fdf8f0]">
 
               {/* Nombres de día */}
               <div className="grid grid-cols-7 mb-1">
                 {weekdays.map((d) => (
                   <div
                     key={d}
-                    className="text-center text-[10px] font-bold text-gold-500 tracking-widest py-1"
+                    className="text-center text-[10px] font-bold text-gold-600/70 tracking-widest py-1"
                   >
                     {d}
                   </div>
@@ -180,28 +180,28 @@ export function CalendarPicker({
                         'relative mx-auto flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold transition-all',
                         // Seleccionado
                         isSelected && inMonth &&
-                          'bg-gold-gradient text-navy-900 shadow-gold scale-110 font-bold',
+                          'bg-gradient-to-br from-gold-500 to-gold-600 text-white shadow-gold scale-110 font-bold',
                         // Hoy (no seleccionado)
                         isToday && !isSelected &&
-                          'border border-gold-400 text-gold-400',
+                          'border border-gold-500/70 text-gold-600 bg-gold-50/60',
                         // Disponible normal
                         !isSelected && !isDisabled &&
-                          'text-white hover:bg-white/10 hover:text-gold-300',
+                          'text-stone-700 hover:bg-[#f0e0c0]/60 hover:text-stone-900',
                         // Fuera del mes
                         !inMonth &&
                           'opacity-0 pointer-events-none',
                         // Deshabilitado (pasado / cerrado / fuera de rango)
                         isDisabled && inMonth &&
-                          'text-navy-600 cursor-not-allowed',
+                          'text-stone-300 cursor-not-allowed',
                         // Cerrado (lunes) con tachado
                         isClosed && inMonth &&
-                          'line-through text-pirate-800',
+                          'line-through text-pirate-400',
                       )}
                     >
                       {format(d, 'd')}
                       {/* Punto indicador "hoy" */}
                       {isToday && !isSelected && (
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gold-400" />
+                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gold-500" />
                       )}
                     </button>
                   )
@@ -209,18 +209,18 @@ export function CalendarPicker({
               </div>
 
               {/* Leyenda */}
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10">
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#e8d5b0]/60">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-gold-400 shadow-gold" />
-                  <span className="text-[10px] text-navy-400">Hoy</span>
+                  <span className="w-2.5 h-2.5 rounded-full border border-gold-500/70 bg-gold-50/60" />
+                  <span className="text-[10px] text-stone-400">Hoy</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-xl bg-gold-gradient" />
-                  <span className="text-[10px] text-navy-400">Seleccionado</span>
+                  <span className="w-2.5 h-2.5 rounded-lg bg-gradient-to-br from-gold-500 to-gold-600" />
+                  <span className="text-[10px] text-stone-400">Seleccionado</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-pirate-800 line-through font-semibold">L</span>
-                  <span className="text-[10px] text-navy-400">Cerrado</span>
+                  <span className="text-[10px] text-pirate-400 line-through font-semibold">L</span>
+                  <span className="text-[10px] text-stone-400">Cerrado</span>
                 </div>
               </div>
             </div>

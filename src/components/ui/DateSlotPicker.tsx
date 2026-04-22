@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import { addDays, format, isToday, isTomorrow, startOfDay } from 'date-fns'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { addDays, format, isTomorrow, isToday, parse, startOfDay } from 'date-fns'
 import { es, enUS } from 'date-fns/locale'
 import { clsx } from 'clsx'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
@@ -39,14 +39,28 @@ export function DateSlotPicker({
   // date-fns locale según el idioma activo de i18n
   const dfLocale = i18n.resolvedLanguage === 'en' ? enUS : es
 
-  const dates = useMemo(() => {
-    const base = minDate ?? today
-    return Array.from({ length: days }).map((_, i) => addDays(base, i))
-  }, [days, minDate, today])
+  const base = useMemo(() => minDate ?? today, [minDate, today])
+  const context = Math.floor(days / 2) // días a mostrar antes de la seleccionada
+
+  const [windowStart, setWindowStart] = useState(base)
+
+  // Recentra la ventana cuando cambia la fecha seleccionada
+  useEffect(() => {
+    if (!value) { setWindowStart(base); return }
+    const selected = parse(value, 'yyyy-MM-dd', new Date())
+    const ideal = addDays(selected, -context)
+    setWindowStart(ideal < base ? base : ideal)
+  }, [value, base, context])
+
+  const dates = useMemo(() =>
+    Array.from({ length: days }).map((_, i) => addDays(windowStart, i))
+  , [days, windowStart])
 
   const scroll = (dir: 'left' | 'right') => {
-    if (!scrollRef.current) return
-    scrollRef.current.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' })
+    setWindowStart(prev => {
+      const next = addDays(prev, dir === 'left' ? -3 : 3)
+      return next < base ? base : next
+    })
   }
 
   return (

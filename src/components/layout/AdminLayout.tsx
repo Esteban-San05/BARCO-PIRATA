@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, CalendarCheck, BarChart3, Settings,
+  LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock,
   LogOut, ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '@app/providers'
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/admin',                icon: LayoutDashboard, label: 'Dashboard',      end: true  },
   { to: '/admin/reservaciones',  icon: CalendarCheck,   label: 'Reservaciones',  end: false },
   { to: '/admin/reportes',       icon: BarChart3,       label: 'Reportes',       end: false },
+  { to: '/admin/horarios',       icon: Clock,           label: 'Horarios',       end: false },
   { to: '/admin/ajustes',        icon: Settings,        label: 'Ajustes',        end: false },
 ]
 

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
@@ -18,6 +18,14 @@ export default defineConfig({
       '@constants': path.resolve(__dirname, './src/constants'),
       '@assets': path.resolve(__dirname, './src/assets'),
       '@app': path.resolve(__dirname, './src/app'),
+    },
+  },
+  test: {
+    globals:     true,
+    environment: 'node',
+    coverage: {
+      provider: 'v8',
+      include:  ['src/utils/**'],
     },
   },
   server: {
