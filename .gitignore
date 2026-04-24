@@ -52,3 +52,4 @@ coverage
 # Otros
 .cache
 .temp
+.vercel
