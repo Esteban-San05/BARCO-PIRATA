@@ -1,34 +1,58 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock,
-  LogOut, ChevronRight,
-} from 'lucide-react'
+import { useState } from 'react'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock, LogOut, Menu } from 'lucide-react'
 import { useAuth } from '@app/providers'
 import { COMPANY } from '@constants/index'
 
 const navItems = [
-  { to: '/admin',                icon: LayoutDashboard, label: 'Dashboard',      end: true  },
-  { to: '/admin/reservaciones',  icon: CalendarCheck,   label: 'Reservaciones',  end: false },
-  { to: '/admin/reportes',       icon: BarChart3,       label: 'Reportes',       end: false },
-  { to: '/admin/horarios',       icon: Clock,           label: 'Horarios',       end: false },
-  { to: '/admin/ajustes',        icon: Settings,        label: 'Ajustes',        end: false },
+  { to: '/admin',               icon: LayoutDashboard, label: 'Dashboard',     end: true  },
+  { to: '/admin/reservaciones', icon: CalendarCheck,   label: 'Reservaciones', end: false },
+  { to: '/admin/reportes',      icon: BarChart3,       label: 'Reportes',      end: false },
+  { to: '/admin/horarios',      icon: Clock,           label: 'Horarios',      end: false },
+  { to: '/admin/ajustes',       icon: Settings,        label: 'Ajustes',       end: false },
 ]
+
+const PAGE_TITLES: Record<string, string> = {
+  '/admin':               'Dashboard',
+  '/admin/reservaciones': 'Reservaciones',
+  '/admin/reportes':      'Reportes',
+  '/admin/horarios':      'Horarios',
+  '/admin/ajustes':       'Ajustes',
+}
 
 export function AdminLayout() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/admin/login')
   }
 
+  const pageTitle = PAGE_TITLES[location.pathname] ?? 'Panel de Administración'
+  const initials = (user?.email ?? 'AD').slice(0, 2).toUpperCase()
+
   return (
-    <div className="admin-scope min-h-screen flex">
+    <div className="admin-scope min-h-screen flex" style={{ background: 'var(--bg-app)' }}>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-navy-900 text-white flex flex-col fixed inset-y-0 left-0 z-40 shadow-card-lg">
+      <aside
+        className={`w-64 flex flex-col fixed inset-y-0 left-0 z-40 shadow-card-lg transition-transform lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+        style={{ background: 'var(--sidebar-bg, #081630)' }}
+      >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-4 h-16 border-b border-white/10">
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10 shrink-0">
           <img
             src="/images/logo.png"
             alt={COMPANY.shortName}
@@ -39,57 +63,76 @@ export function AdminLayout() {
           </span>
         </div>
 
-        {/* User info */}
-        <div className="px-6 py-4 border-b border-white/10">
-          <p className="text-xs text-navy-300 uppercase tracking-wider mb-0.5">Sesión activa</p>
-          <p className="text-sm font-medium text-white truncate">{user?.email}</p>
-        </div>
-
         {/* Nav */}
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-3 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group ${
-                  isActive
-                    ? 'admin-accent-bg'
-                    : 'text-navy-200 hover:text-white hover:bg-white/10'
-                }`
-              }
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) => `bp-nav-item${isActive ? ' active' : ''}`}
             >
               {({ isActive }) => (
                 <>
-                  <Icon className="w-4.5 h-4.5 shrink-0" />
-                  <span className="flex-1">{label}</span>
-                  {isActive && <ChevronRight className="w-4 h-4" />}
+                  <span className={`bp-nav-icon${isActive ? ' text-[var(--accent)]' : ''}`}>
+                    <Icon size={17} />
+                  </span>
+                  <span>{label}</span>
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="px-4 py-4 border-t border-white/10">
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-navy-200 hover:text-white hover:bg-pirate-600 transition-colors"
-          >
-            <LogOut className="w-4.5 h-4.5" />
+        {/* User + logout */}
+        <div className="border-t border-white/10 p-4 shrink-0">
+          <div className="flex items-center gap-3 mb-2 px-2">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+              style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
+            >
+              {initials}
+            </div>
+            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              {user?.email}
+            </p>
+          </div>
+          <button onClick={handleSignOut} className="bp-nav-item" style={{ paddingLeft: 8 }}>
+            <span className="bp-nav-icon"><LogOut size={16} /></span>
             Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
-        <header className="admin-surface border-b admin-border h-16 flex items-center px-8 sticky top-0 z-30">
-          <h1 className="text-lg font-semibold admin-text-title">Panel de Administración</h1>
+      {/* Main area */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        {/* Header */}
+        <header
+          className="h-16 flex items-center gap-4 px-6 lg:px-8 sticky top-0 z-30 border-b shrink-0"
+          style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}
+        >
+          <button
+            type="button"
+            className="lg:hidden p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu size={20} />
+          </button>
+          <h1
+            className="font-display font-bold text-lg tracking-wide"
+            style={{ color: 'var(--text-title)' }}
+          >
+            {pageTitle}
+          </h1>
         </header>
+
+        {/* Content */}
         <main className="flex-1">
-          <Outlet />
+          <div key={location.pathname} className="bp-page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

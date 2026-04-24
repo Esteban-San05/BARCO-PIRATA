@@ -5,10 +5,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { getReservationSchema, type ReservationFormValues } from '@utils/validators/reservation'
 import { useCreateReservation } from '@features/reservations/hooks/useReservations'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
+import { supabase } from '@lib/supabase'
 import { receiptService } from '@features/payments/services/receiptService'
 import { calculatePrice } from '@utils/pricing'
 import { formatCurrency } from '@utils/formatters'
@@ -29,6 +31,22 @@ export default function ReservationPage() {
   const setPendingReservation = useReservationStore((s) => s.setPendingReservation)
   const { data: bizSettings } = useBusinessSettings()
   const [serverError, setServerError] = useState<string | null>(null)
+  const qc = useQueryClient()
+
+  // Sincronización en tiempo real: cuando el admin guarda cambios en horarios,
+  // esta página se actualiza automáticamente sin refrescar.
+  useEffect(() => {
+    const channel = supabase
+      .channel('reservation-page-settings-sync')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'business_settings', filter: 'id=eq.1' },
+        () => { qc.invalidateQueries({ queryKey: ['business-settings'] }) },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [qc])
 
   const schema = useMemo(() => getReservationSchema(), [i18n.language])
 
@@ -95,7 +113,9 @@ export default function ReservationPage() {
     }
   }
 
-  const closedWeekday = bizSettings?.closedWeekday ?? 1
+  const closedWeekday   = bizSettings?.closedWeekday   ?? 1
+  const closedDates     = bizSettings?.closedDates     ?? []
+  const activeTimeSlots = bizSettings?.activeTimeSlots ?? undefined
 
   return (
     <div className="container-app py-12 max-w-3xl">
@@ -136,6 +156,7 @@ export default function ReservationPage() {
                     setValue('time', '' as unknown as ReservationFormValues['time'])
                   }}
                   closedWeekday={closedWeekday}
+                  closedDates={closedDates}
                   error={errors.date?.message}
                 />
               )}
@@ -150,6 +171,7 @@ export default function ReservationPage() {
                   value={watchedTime}
                   onChange={field.onChange}
                   numberOfPeople={watchedPeople}
+                  activeTimeSlots={activeTimeSlots}
                   error={errors.time?.message}
                 />
               )}

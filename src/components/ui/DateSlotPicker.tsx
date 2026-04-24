@@ -14,6 +14,7 @@ interface DateSlotPickerProps {
   minDate?: Date
   error?: string
   closedWeekday?: number     // 0 = domingo, 1 = lunes, ... (día que no hay servicio)
+  closedDates?: string[]     // fechas específicas cerradas 'yyyy-MM-dd'
 }
 
 /**
@@ -29,7 +30,8 @@ export function DateSlotPicker({
   days = DATE_PICKER_DAYS,
   minDate,
   error,
-  closedWeekday = 1, // Martes a Domingo → cerrado lunes
+  closedWeekday = 1,
+  closedDates = [],
 }: DateSlotPickerProps) {
   const { t, i18n } = useTranslation()
   const today = useMemo(() => startOfDay(new Date()), [])
@@ -106,6 +108,7 @@ export function DateSlotPicker({
         value={value}
         onChange={onChange}
         closedWeekday={closedWeekday}
+        closedDates={closedDates}
         isOpen={calOpen}
         onClose={() => setCalOpen(false)}
       />
@@ -118,8 +121,8 @@ export function DateSlotPicker({
         aria-label={t('datePicker.label')}
       >
         {dates.map((d) => {
-          const iso       = format(d, 'yyyy-MM-dd')
-          const isClosed  = d.getDay() === closedWeekday
+          const iso        = format(d, 'yyyy-MM-dd')
+          const isClosed   = d.getDay() === closedWeekday || closedDates.includes(iso)
           const isSelected = value === iso
 
           const weekday = isToday(d)    ? t('datePicker.today')

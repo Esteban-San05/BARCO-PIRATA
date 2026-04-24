@@ -14,6 +14,7 @@ interface CalendarPickerProps {
   value: string | null          // 'yyyy-MM-dd'
   onChange: (iso: string) => void
   closedWeekday?: number        // 0=dom … 6=sáb
+  closedDates?: string[]        // fechas específicas cerradas 'yyyy-MM-dd'
   isOpen: boolean
   onClose: () => void
   adminMode?: boolean           // sin restricciones de fecha
@@ -23,6 +24,7 @@ export function CalendarPicker({
   value,
   onChange,
   closedWeekday = 1,
+  closedDates = [],
   isOpen,
   onClose,
   adminMode = false,
@@ -156,14 +158,15 @@ export function CalendarPicker({
               {/* Celdas */}
               <div className="grid grid-cols-7 gap-y-1">
                 {cells.map((d) => {
-                  const iso         = format(d, 'yyyy-MM-dd')
-                  const inMonth     = isSameMonth(d, viewMonth)
-                  const isPast      = isBefore(d, today)
-                  const isOverMax   = d > maxDate
-                  const isClosed    = d.getDay() === closedWeekday
-                  const isDisabled  = adminMode ? !inMonth : (isPast || isOverMax || isClosed || !inMonth)
-                  const isSelected  = value === iso
-                  const isToday     = isSameDay(d, today)
+                  const iso            = format(d, 'yyyy-MM-dd')
+                  const inMonth        = isSameMonth(d, viewMonth)
+                  const isPast         = isBefore(d, today)
+                  const isOverMax      = d > maxDate
+                  const isClosed       = d.getDay() === closedWeekday
+                  const isClosedDate   = !adminMode && closedDates.includes(iso)
+                  const isDisabled     = adminMode ? !inMonth : (isPast || isOverMax || isClosed || isClosedDate || !inMonth)
+                  const isSelected     = value === iso
+                  const isToday        = isSameDay(d, today)
 
                   return (
                     <button
@@ -188,8 +191,11 @@ export function CalendarPicker({
                         // Deshabilitado (pasado / cerrado / fuera de rango)
                         isDisabled && inMonth &&
                           'text-navy-200 cursor-not-allowed',
-                        // Cerrado (lunes) con tachado
+                        // Cerrado (día semanal) con tachado
                         isClosed && inMonth &&
+                          'line-through text-pirate-300',
+                        // Fecha específica cerrada
+                        isClosedDate && inMonth &&
                           'line-through text-pirate-300',
                       )}
                     >

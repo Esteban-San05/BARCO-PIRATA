@@ -1,327 +1,362 @@
-import { useMemo } from 'react'
-import { clsx } from 'clsx'
-import { useAdminTheme } from '@app/providers/AdminThemeProvider'
+import React, { useState, useRef, useEffect } from 'react'
 
-// ════════════════════════════════════════════════════════════════════════
-//   Paleta de colores sensible al tema
-// ════════════════════════════════════════════════════════════════════════
-function useChartColors() {
-  const { resolvedTheme } = useAdminTheme()
-  return resolvedTheme === 'dark'
-    ? {
-        axis:   '#64748b',
-        grid:   'rgba(255,255,255,0.08)',
-        text:   '#cbd5e1',
-        bar:    '#F7C948',
-        barAlt: '#F0B429',
-        line:   '#F7C948',
-        area:   'rgba(247,201,72,0.20)',
-        accent: '#F7C948',
-      }
-    : {
-        axis:   '#94a3b8',
-        grid:   'rgba(13,32,64,0.08)',
-        text:   '#475569',
-        bar:    '#F0B429',
-        barAlt: '#DE911D',
-        line:   '#0D2040',
-        area:   'rgba(13,32,64,0.10)',
-        accent: '#F0B429',
-      }
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface DataPoint {
+  label: string
+  value: number
+  sublabel?: string
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//   BarChart
-// ════════════════════════════════════════════════════════════════════════
+interface DonutSlice {
+  label: string
+  value: number
+  color: string
+}
 
-export interface BarChartProps {
-  data: Array<{ label: string; value: number; sublabel?: string }>
-  /** Formateador del valor para mostrar arriba de cada barra */
+interface LineChartProps {
+  data: DataPoint[]
   valueFormatter?: (v: number) => string
   height?: number
-  className?: string
-  /** Número de líneas horizontales de la cuadrícula */
-  gridLines?: number
 }
 
-export function BarChart({
-  data,
-  valueFormatter = (v) => String(v),
-  height = 280,
-  className,
-  gridLines = 4,
-}: BarChartProps) {
-  const colors = useChartColors()
+interface BarChartProps {
+  data: DataPoint[]
+  valueFormatter?: (v: number) => string
+  height?: number
+}
 
-  const { max, barWidth, gap } = useMemo(() => {
-    const maxVal = Math.max(1, ...data.map((d) => d.value))
-    // Redondea hacia arriba al múltiplo "bonito" más cercano
-    const niceMax = niceCeil(maxVal)
-    const count = data.length
-    const innerW = 100
-    const gap = count > 0 ? Math.max(1, Math.min(4, 100 / count / 3)) : 1
-    const barW = count > 0 ? (innerW - gap * (count + 1)) / count : 0
-    return { max: niceMax, barWidth: barW, gap }
-  }, [data])
+interface DonutChartProps {
+  data: DonutSlice[]
+  centerValue: string
+  centerLabel: string
+  valueFormatter?: (v: number) => string
+}
 
-  if (!data.length) {
-    return (
-      <div
-        className={clsx('flex items-center justify-center rounded-xl admin-surface border admin-border', className)}
-        style={{ height }}
-      >
-        <p className="text-sm admin-text-muted">Sin datos en el período seleccionado</p>
-      </div>
-    )
+// ─── useContainerWidth ────────────────────────────────────────────────────────
+
+function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>, fallback = 600): number {
+  const [w, setW] = useState(fallback)
+  useEffect(() => {
+    if (!ref.current) return
+    const ro = new ResizeObserver(entries => setW(entries[0].contentRect.width))
+    ro.observe(ref.current)
+    setW(ref.current.getBoundingClientRect().width || fallback)
+    return () => ro.disconnect()
+  }, [])
+  return w
+}
+
+// ─── Smooth bezier path ───────────────────────────────────────────────────────
+
+function smoothPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return ''
+  let d = `M ${pts[0].x} ${pts[0].y}`
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i - 1], c = pts[i]
+    const cpx = (p.x + c.x) / 2
+    d += ` C ${cpx} ${p.y}, ${cpx} ${c.y}, ${c.x} ${c.y}`
   }
+  return d
+}
+
+// ─── LineChart ────────────────────────────────────────────────────────────────
+
+export function LineChart({ data, valueFormatter, height = 260 }: LineChartProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const W   = useContainerWidth(ref)
+  const [hov, setHov] = useState<number | null>(null)
+
+  const padL = 8, padR = 8, padT = 20, padB = 32
+  const cW = Math.max(W - padL - padR, 1)
+  const cH = height - padT - padB
+  const max = Math.max(...data.map(d => d.value)) * 1.1 || 1
+
+  const pts = data.map((d, i) => ({
+    x: padL + (data.length > 1 ? (i / (data.length - 1)) * cW : cW / 2),
+    y: padT + (1 - d.value / max) * cH,
+    d, i,
+  }))
+
+  const line  = smoothPath(pts)
+  const area  = line ? line + ` L ${pts[pts.length - 1].x} ${padT + cH} L ${pts[0].x} ${padT + cH} Z` : ''
+  const step  = Math.max(1, Math.floor(data.length / 6))
+  const xLbls = pts.filter((_, i) => i % step === 0 || i === pts.length - 1)
+
+  const hpt   = hov !== null ? pts[hov] : null
+  const ttLbl = hpt ? (valueFormatter ? valueFormatter(hpt.d.value) : String(hpt.d.value)) : ''
+  const ttW   = Math.max(ttLbl.length * 7.5 + 16, 72)
+  const ttX   = hpt ? Math.min(Math.max(hpt.x - ttW / 2, 4), W - ttW - 4) : 0
+
+  if (!data.length) return null
 
   return (
-    <div className={clsx('w-full', className)} style={{ height }}>
-      <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="w-full h-[85%]" aria-hidden>
-        {/* Grid horizontal */}
-        {Array.from({ length: gridLines }).map((_, i) => {
-          const y = 60 - (i / (gridLines - 1)) * 58 - 1
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
+      <svg width={W} height={height} style={{ display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="lgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#F0B429" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#F0B429" stopOpacity="0"    />
+          </linearGradient>
+          <clipPath id="lgClip">
+            <rect x={padL} y={padT} width={cW} height={cH} />
+          </clipPath>
+        </defs>
+
+        {/* Gridlines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
+          <line key={i}
+            x1={padL} y1={padT + (1 - f) * cH}
+            x2={padL + cW} y2={padT + (1 - f) * cH}
+            stroke="var(--border, #D9E5F2)" strokeWidth="0.8" strokeDasharray="3,3"
+          />
+        ))}
+
+        {/* Area + line */}
+        {area && <path d={area} fill="url(#lgGrad)" clipPath="url(#lgClip)" />}
+        {line && (
+          <path d={line} fill="none" stroke="#F0B429" strokeWidth="2.5"
+            strokeLinecap="round" clipPath="url(#lgClip)" />
+        )}
+
+        {/* Dots + hover zones */}
+        {pts.map((pt, i) => {
+          const prevX = i === 0 ? pt.x - 8 : (pts[i - 1].x + pt.x) / 2
+          const nextX = i === pts.length - 1 ? pt.x + 8 : (pt.x + pts[i + 1].x) / 2
+          const zoneW = nextX - prevX
           return (
-            <line
-              key={i}
-              x1={0} x2={100}
-              y1={y} y2={y}
-              stroke={colors.grid}
-              strokeWidth={0.15}
-            />
+            <g key={i}>
+              <rect x={prevX} y={padT} width={zoneW} height={cH}
+                fill="transparent" style={{ cursor: 'crosshair' }}
+                onMouseEnter={() => setHov(i)}
+                onMouseLeave={() => setHov(null)}
+              />
+              <circle cx={pt.x} cy={pt.y} r={hov === i ? 5 : 3}
+                fill={hov === i ? '#fff' : '#F0B429'}
+                stroke="#F0B429" strokeWidth="2"
+                style={{ transition: 'r 0.12s, fill 0.12s', pointerEvents: 'none' }}
+              />
+              {hov === i && (
+                <line x1={pt.x} y1={padT} x2={pt.x} y2={padT + cH}
+                  stroke="#F0B429" strokeWidth="1" strokeDasharray="4,4" opacity="0.7"
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+            </g>
           )
         })}
-        {/* Barras */}
+
+        {/* X labels */}
+        {xLbls.map((pt, i) => (
+          <text key={i} x={pt.x} y={padT + cH + 22}
+            textAnchor="middle" fontSize="11"
+            fill="var(--text-muted, #6B85A6)" fontFamily="Inter, sans-serif">
+            {pt.d.label}
+          </text>
+        ))}
+      </svg>
+
+      {/* Tooltip flotante */}
+      {hpt && (
+        <div style={{
+          position: 'absolute', top: hpt.y - 42, left: ttX,
+          background: '#0D2040', color: '#F0B429', borderRadius: 6,
+          padding: '5px 12px', fontSize: 13, fontWeight: 700,
+          whiteSpace: 'nowrap', pointerEvents: 'none',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          fontFamily: 'Inter, sans-serif',
+          border: '1px solid rgba(240,180,41,0.3)',
+          zIndex: 10,
+        }}>
+          {ttLbl}
+          <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>
+            {hpt.d.label}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── BarChart ─────────────────────────────────────────────────────────────────
+
+export function BarChart({ data, valueFormatter, height = 220 }: BarChartProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const W   = useContainerWidth(ref)
+  const [hov, setHov] = useState<number | null>(null)
+
+  const padL = 8, padR = 8, padT = 28, padB = 36
+  const cW = Math.max(W - padL - padR, 1)
+  const cH = height - padT - padB
+  const max = Math.max(...data.map(d => d.value)) * 1.1 || 1
+
+  const barTotal = cW / (data.length || 1)
+  const barW     = barTotal * 0.55
+  const barGap   = (barTotal - barW) / 2
+
+  if (!data.length) return null
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
+      <svg width={W} height={height} style={{ display: 'block' }}>
+        <defs>
+          <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#F7C948" />
+            <stop offset="100%" stopColor="#DE911D" />
+          </linearGradient>
+        </defs>
+
         {data.map((d, i) => {
-          const ratio  = d.value / max
-          const barH   = ratio * 58
-          const x      = gap + i * (barWidth + gap)
-          const y      = 60 - barH - 1
+          const bh = (d.value / max) * cH
+          const bx = padL + i * barTotal + barGap
+          const by = padT + cH - bh
+          const cx = bx + barW / 2
           return (
-            <g key={`${d.label}-${i}`}>
-              <rect
-                x={x}
-                y={y}
-                width={barWidth}
-                height={barH}
-                rx={0.5}
-                fill={colors.bar}
-                opacity={0.95}
-              >
-                <title>{`${d.label}: ${valueFormatter(d.value)}`}</title>
-              </rect>
+            <g key={i}
+              onMouseEnter={() => setHov(i)}
+              onMouseLeave={() => setHov(null)}
+              style={{ cursor: 'pointer' }}>
+              {/* Track */}
+              <rect x={bx} y={padT} width={barW} height={cH}
+                fill="rgba(255,255,255,0.06)" rx="4" />
+              {/* Bar */}
+              <rect x={bx} y={by} width={barW} height={bh}
+                fill={hov === i ? '#F7C948' : 'url(#bgGrad)'} rx="4"
+                style={{ transition: 'fill 0.15s' }}
+              />
+              {/* X label */}
+              <text x={cx} y={padT + cH + 20}
+                textAnchor="middle" fontSize="11"
+                fill="var(--text-muted, #6B85A6)" fontFamily="Inter, sans-serif">
+                {d.label}
+              </text>
             </g>
           )
         })}
       </svg>
-      {/* Etiquetas X */}
-      <div className="w-full grid gap-1 mt-2" style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}>
-        {data.map((d, i) => (
-          <div key={`${d.label}-${i}-lbl`} className="text-[10px] text-center admin-text-muted truncate" title={d.label}>
-            <div className="font-semibold admin-text-body">{valueFormatter(d.value)}</div>
-            <div>{d.label}</div>
-            {d.sublabel && <div className="admin-text-subtle">{d.sublabel}</div>}
+
+      {/* Tooltip flotante */}
+      {hov !== null && (() => {
+        const d   = data[hov]
+        const bx  = padL + hov * barTotal + barGap
+        const bh  = (d.value / max) * cH
+        const by  = padT + cH - bh
+        const cx  = bx + barW / 2
+        const lbl = valueFormatter ? valueFormatter(d.value) : String(d.value)
+        const tw  = Math.max(lbl.length * 7.5 + 24, 80)
+        return (
+          <div style={{
+            position: 'absolute',
+            top:  by - 38,
+            left: Math.min(Math.max(cx - tw / 2, 4), W - tw - 4),
+            background: '#0D2040', color: '#F0B429', borderRadius: 6,
+            padding: '5px 12px', fontSize: 13, fontWeight: 700,
+            whiteSpace: 'nowrap', pointerEvents: 'none',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            fontFamily: 'Inter, sans-serif',
+            border: '1px solid rgba(240,180,41,0.3)',
+            zIndex: 10,
+          }}>
+            {lbl}
           </div>
-        ))}
-      </div>
+        )
+      })()}
     </div>
   )
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//   LineChart / AreaChart
-// ════════════════════════════════════════════════════════════════════════
+// ─── DonutChart ───────────────────────────────────────────────────────────────
 
-export interface LineChartProps {
-  data: Array<{ label: string; value: number }>
-  valueFormatter?: (v: number) => string
-  height?: number
-  className?: string
-  /** Rellena el área debajo de la línea */
-  area?: boolean
-}
+export function DonutChart({ data, centerValue, centerLabel, valueFormatter }: DonutChartProps) {
+  const [hov, setHov] = useState<number | null>(null)
+  const total = data.reduce((s, d) => s + d.value, 0) || 1
+  const cx = 80, cy = 80, R = 64, r = 42
 
-export function LineChart({
-  data,
-  valueFormatter = (v) => String(v),
-  height = 280,
-  className,
-  area = true,
-}: LineChartProps) {
-  const colors = useChartColors()
-
-  if (!data.length) {
-    return (
-      <div
-        className={clsx('flex items-center justify-center rounded-xl admin-surface border admin-border', className)}
-        style={{ height }}
-      >
-        <p className="text-sm admin-text-muted">Sin datos en el período seleccionado</p>
-      </div>
-    )
-  }
-
-  const max = niceCeil(Math.max(1, ...data.map((d) => d.value)))
-  const step = data.length > 1 ? 100 / (data.length - 1) : 0
-  const points = data.map((d, i) => {
-    const x = data.length === 1 ? 50 : i * step
-    const y = 60 - (d.value / max) * 58 - 1
-    return { x, y, value: d.value, label: d.label }
+  let angle = -Math.PI / 2
+  const slices = data.map((d) => {
+    const sweep = (d.value / total) * Math.PI * 2
+    const s = angle, e = angle + sweep
+    angle += sweep
+    const x1 = cx + R * Math.cos(s), y1 = cy + R * Math.sin(s)
+    const x2 = cx + R * Math.cos(e), y2 = cy + R * Math.sin(e)
+    const xi1 = cx + r * Math.cos(s), yi1 = cy + r * Math.sin(s)
+    const xi2 = cx + r * Math.cos(e), yi2 = cy + r * Math.sin(e)
+    const lg = sweep > Math.PI ? 1 : 0
+    const path = `M ${xi1} ${yi1} L ${x1} ${y1} A ${R} ${R} 0 ${lg} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${r} ${r} 0 ${lg} 0 ${xi1} ${yi1} Z`
+    return { ...d, path }
   })
 
-  const pathLine = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const pathArea = `${pathLine} L ${points[points.length - 1].x} 60 L ${points[0].x} 60 Z`
-
   return (
-    <div className={clsx('w-full', className)} style={{ height }}>
-      <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="w-full h-[85%]" aria-hidden>
-        {[0, 1, 2, 3].map((i) => {
-          const y = 60 - (i / 3) * 58 - 1
-          return <line key={i} x1={0} x2={100} y1={y} y2={y} stroke={colors.grid} strokeWidth={0.15} />
-        })}
-        {area && points.length > 1 && (
-          <path d={pathArea} fill={colors.area} />
-        )}
-        <path d={pathLine} fill="none" stroke={colors.line} strokeWidth={0.6} strokeLinejoin="round" strokeLinecap="round" />
-        {points.map((p) => (
-          <circle key={`${p.label}-${p.x}`} cx={p.x} cy={p.y} r={0.9} fill={colors.accent}>
-            <title>{`${p.label}: ${valueFormatter(p.value)}`}</title>
-          </circle>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+      <svg viewBox="0 0 160 160" width="160" height="160" style={{ flexShrink: 0 }}>
+        {slices.map((s, i) => (
+          <path key={i} d={s.path} fill={s.color}
+            opacity={hov === null || hov === i ? 1 : 0.35}
+            style={{
+              transition: 'opacity 0.18s, transform 0.18s',
+              transformOrigin: `${cx}px ${cy}px`,
+              transform: hov === i ? 'scale(1.06)' : 'scale(1)',
+              cursor: 'pointer',
+              filter: hov === i ? `drop-shadow(0 0 6px ${s.color}88)` : 'none',
+            }}
+            onMouseEnter={() => setHov(i)}
+            onMouseLeave={() => setHov(null)}
+          />
         ))}
+        <text x={cx} y={cy - 5} textAnchor="middle"
+          fontSize="17" fontWeight="800"
+          fill="var(--text-title, #0D2040)" fontFamily="Inter, sans-serif">
+          {hov !== null ? (valueFormatter ? valueFormatter(slices[hov].value) : String(slices[hov].value)) : centerValue}
+        </text>
+        <text x={cx} y={cy + 13} textAnchor="middle"
+          fontSize="10" fill="var(--text-muted, #6B85A6)" fontFamily="Inter, sans-serif">
+          {hov !== null ? slices[hov].label : centerLabel}
+        </text>
       </svg>
-      <div className="w-full grid gap-1 mt-2" style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}>
-        {data.map((d, i) => (
-          <div key={`${d.label}-${i}-lbl`} className="text-[10px] text-center admin-text-muted truncate" title={d.label}>
-            <div className="font-semibold admin-text-body">{valueFormatter(d.value)}</div>
-            <div>{d.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//   DonutChart — distribución (por paquete o método de pago)
-// ════════════════════════════════════════════════════════════════════════
-
-export interface DonutChartProps {
-  data: Array<{ label: string; value: number; color?: string; icon?: string }>
-  valueFormatter?: (v: number) => string
-  centerValue?: string
-  centerLabel?: string
-  className?: string
-  size?: number
-}
-
-const DEFAULT_DONUT_COLORS = [
-  '#F0B429', // gold-500
-  '#0D2040', // navy-900
-  '#DC2626', // pirate-500
-  '#2A5E9E', // navy-500
-  '#F7C948', // gold-400
-  '#94A3B8', // slate-400
-]
-
-export function DonutChart({
-  data,
-  valueFormatter = (v) => String(v),
-  centerValue,
-  centerLabel,
-  className,
-  size = 180,
-}: DonutChartProps) {
-  const total = data.reduce((s, d) => s + d.value, 0)
-
-  if (!total) {
-    return (
-      <div
-        className={clsx('flex items-center justify-center rounded-xl admin-surface border admin-border', className)}
-        style={{ height: size + 40 }}
-      >
-        <p className="text-sm admin-text-muted">Sin datos</p>
-      </div>
-    )
-  }
-
-  const radius = 40
-  const circumference = 2 * Math.PI * radius
-  let offset = 0
-
-  const segments = data.map((d, i) => {
-    const pct = d.value / total
-    const dash = pct * circumference
-    const seg = {
-      ...d,
-      color: d.color ?? DEFAULT_DONUT_COLORS[i % DEFAULT_DONUT_COLORS.length],
-      pct,
-      dash,
-      offset: -offset,
-    }
-    offset += dash
-    return seg
-  })
-
-  return (
-    <div className={clsx('flex flex-col sm:flex-row items-center gap-6', className)}>
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
-        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-          <circle cx={50} cy={50} r={radius} fill="none" stroke="currentColor" strokeWidth={14} className="admin-text-subtle opacity-20" />
-          {segments.map((s, i) => (
-            <circle
-              key={`${s.label}-${i}`}
-              cx={50} cy={50} r={radius}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={14}
-              strokeDasharray={`${s.dash} ${circumference - s.dash}`}
-              strokeDashoffset={s.offset}
-              strokeLinecap="butt"
-            >
-              <title>{`${s.label}: ${valueFormatter(s.value)} (${Math.round(s.pct * 100)}%)`}</title>
-            </circle>
-          ))}
-        </svg>
-        {(centerValue || centerLabel) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            {centerValue && <span className="text-2xl font-bold admin-text-title">{centerValue}</span>}
-            {centerLabel && <span className="text-xs admin-text-muted uppercase tracking-wider mt-0.5">{centerLabel}</span>}
-          </div>
-        )}
-      </div>
 
       {/* Leyenda */}
-      <ul className="flex-1 space-y-2 w-full min-w-0">
-        {segments.map((s, i) => (
-          <li key={`${s.label}-${i}-leg`} className="flex items-center gap-2 text-sm">
-            <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: s.color }} />
-            <span className="flex-1 truncate admin-text-body">
-              {s.icon && <span className="mr-1">{s.icon}</span>}{s.label}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '10px 1fr auto',
+        alignItems: 'center',
+        columnGap: 8, rowGap: 10,
+        flex: 1, minWidth: 120,
+      }}>
+        {slices.map((s, i) => (
+          <React.Fragment key={i}>
+            <span
+              style={{
+                width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0,
+                opacity: hov === null || hov === i ? 1 : 0.35,
+                transition: 'opacity 0.18s', cursor: 'pointer',
+              }}
+              onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)}
+            />
+            <span
+              style={{
+                fontSize: 13, color: 'var(--text-body, #2A4066)', cursor: 'pointer',
+                opacity: hov === null || hov === i ? 1 : 0.35,
+                transition: 'opacity 0.18s', lineHeight: 1.3,
+              }}
+              onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)}>
+              {s.label}
             </span>
-            <span className="admin-text-muted tabular-nums">{Math.round(s.pct * 100)}%</span>
-            <span className="font-semibold admin-text-title tabular-nums">{valueFormatter(s.value)}</span>
-          </li>
+            <span
+              style={{
+                fontSize: 13, fontWeight: 700, color: 'var(--text-title, #0D2040)',
+                whiteSpace: 'nowrap', cursor: 'pointer',
+                opacity: hov === null || hov === i ? 1 : 0.35,
+                transition: 'opacity 0.18s',
+              }}
+              onMouseEnter={() => setHov(i)} onMouseLeave={() => setHov(null)}>
+              {valueFormatter ? valueFormatter(s.value) : s.value}
+            </span>
+          </React.Fragment>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//   Helpers
-// ════════════════════════════════════════════════════════════════════════
-
-/** Redondea un máximo a un valor "bonito" para el eje (1, 2, 5, 10, 20, 50, ...) */
-function niceCeil(value: number): number {
-  if (value <= 0) return 1
-  const exp  = Math.floor(Math.log10(value))
-  const base = Math.pow(10, exp)
-  const norm = value / base
-  let nice: number
-  if      (norm <= 1)   nice = 1
-  else if (norm <= 2)   nice = 2
-  else if (norm <= 2.5) nice = 2.5
-  else if (norm <= 5)   nice = 5
-  else                  nice = 10
-  return nice * base
-}
+// ─── Re-exports for backwards compat ─────────────────────────────────────────
+export type { LineChartProps, BarChartProps, DonutChartProps }

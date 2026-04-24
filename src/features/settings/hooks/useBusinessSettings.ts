@@ -9,6 +9,7 @@ const FALLBACK: BusinessSettings = {
   closedWeekday:   1,
   activeTimeSlots: TIME_SLOTS.map(s => s.time),
   boatCapacity:    BOAT_CAPACITY,
+  closedDates:     [],
 }
 
 export function useBusinessSettings() {

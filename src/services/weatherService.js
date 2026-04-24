@@ -16,6 +16,7 @@ async function fetchClimaGeneral() {
       'precipitation',
       'weather_code',
       'relative_humidity_2m',
+      'uv_index',
     ].join(','),
   })
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`)
@@ -58,6 +59,7 @@ export async function fetchDatosCompletos() {
       direccionViento:   gc.wind_direction_10m     ?? null,
       precipitacion:     gc.precipitation          ?? null,
       codigoClima:       gc.weather_code           ?? null,
+      uvIndex:           gc.uv_index               ?? null,
     },
     marina: {
       alturaOlas:          mc.wave_height             ?? null,
@@ -110,6 +112,27 @@ async function fetchDiarioMarina() {
   const res = await fetch(`https://marine-api.open-meteo.com/v1/marine?${params}`)
   if (!res.ok) throw new Error(`Pronóstico marina: HTTP ${res.status}`)
   return res.json()
+}
+
+/** Retorna el pronóstico de los próximos 14 días como array. */
+export async function fetchPronostico14Dias() {
+  const [general, marina] = await Promise.all([fetchDiarioGeneral(), fetchDiarioMarina()])
+  const fechas = general.daily?.time ?? []
+  const gd = general.daily ?? {}
+  const md = marina.daily  ?? {}
+
+  return fechas.map((fecha, idx) => ({
+    fecha,
+    clima: {
+      temperaturaMax:  gd.temperature_2m_max?.[idx]  ?? null,
+      velocidadViento: gd.wind_speed_10m_max?.[idx]  ?? null,
+      precipitacion:   gd.precipitation_sum?.[idx]   ?? null,
+      codigoClima:     gd.weather_code?.[idx]         ?? null,
+    },
+    marina: {
+      alturaOlas: md.wave_height_max?.[idx] ?? null,
+    },
+  }))
 }
 
 /** Retorna el pronóstico para una fecha específica (formato 'yyyy-MM-dd'). */

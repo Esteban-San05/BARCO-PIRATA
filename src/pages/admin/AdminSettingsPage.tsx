@@ -1,17 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Sun, Moon, Monitor, LayoutGrid, Palette, RotateCcw,
-  Eye, Sparkles, Settings as SettingsIcon, Check,
+  Eye, Check,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import {
   useAdminTheme,
-  type ThemeMode, type Density, type AccentColor,
+  type ThemeMode, type Density,
 } from '@app/providers/AdminThemeProvider'
 import { Button } from '@components/ui/Button'
 
 // ════════════════════════════════════════════════════════════════════════
-//   Tile reutilizable (botón grande con icono)
+//   Tile reutilizable — usa bp-option-tile del handoff
 // ════════════════════════════════════════════════════════════════════════
 function OptionTile({
   active, icon: Icon, label, hint, onClick,
@@ -26,21 +26,11 @@ function OptionTile({
     <button
       type="button"
       onClick={onClick}
-      className={clsx(
-        'relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all text-center',
-        active
-          ? 'admin-accent-bg admin-accent-border shadow-md'
-          : 'admin-surface admin-border hover:border-gold-400 admin-text-body',
-      )}
+      className={clsx('bp-option-tile', active && 'active')}
     >
-      {active && (
-        <span className="absolute top-2 right-2">
-          <Check className="w-4 h-4" />
-        </span>
-      )}
-      <Icon className={clsx('w-6 h-6', active ? '' : 'admin-accent-text')} />
+      <Icon className="w-6 h-6" />
       <span className="font-semibold text-sm">{label}</span>
-      {hint && <span className={clsx('text-[11px]', active ? 'opacity-80' : 'admin-text-subtle')}>{hint}</span>}
+      {hint && <span className="text-[11px] opacity-70">{hint}</span>}
     </button>
   )
 }
@@ -59,8 +49,8 @@ function ToggleSwitch({
   return (
     <label className="flex items-center justify-between gap-4 py-3 cursor-pointer">
       <div className="min-w-0">
-        <p className="font-semibold text-sm admin-text-body">{label}</p>
-        {description && <p className="text-xs admin-text-muted mt-0.5">{description}</p>}
+        <p className="font-semibold text-sm" style={{ color: 'var(--text-body)' }}>{label}</p>
+        {description && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>}
       </div>
       <button
         type="button"
@@ -69,15 +59,13 @@ function ToggleSwitch({
         onClick={() => onChange(!checked)}
         className={clsx(
           'relative shrink-0 inline-flex items-center w-11 h-6 rounded-full transition-colors',
-          checked ? 'bg-gold-400' : 'admin-surface-alt border admin-border',
+          checked ? 'bg-gold-400' : 'bg-navy-100 border border-navy-200',
         )}
       >
-        <span
-          className={clsx(
-            'inline-block w-4 h-4 rounded-full bg-white shadow transition-transform',
-            checked ? 'translate-x-6' : 'translate-x-1',
-          )}
-        />
+        <span className={clsx(
+          'inline-block w-4 h-4 rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-6' : 'translate-x-1',
+        )} />
       </button>
     </label>
   )
@@ -95,14 +83,17 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="admin-surface border admin-border rounded-xl p-6">
+    <section
+      className="rounded-xl p-6"
+      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
+    >
       <header className="flex items-start gap-3 mb-5">
         <div className="w-10 h-10 rounded-lg bg-gold-100 flex items-center justify-center shrink-0">
           <Icon className="w-5 h-5 text-gold-600" />
         </div>
         <div className="min-w-0">
-          <h2 className="font-display font-bold admin-text-title">{title}</h2>
-          {description && <p className="text-sm admin-text-muted mt-0.5">{description}</p>}
+          <h2 className="font-display font-bold" style={{ color: 'var(--text-title)' }}>{title}</h2>
+          {description && <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>}
         </div>
       </header>
       {children}
@@ -126,37 +117,30 @@ export default function AdminSettingsPage() {
   }
 
   const themeOptions: Array<{ value: ThemeMode; label: string; hint: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { value: 'light',  label: 'Claro',  hint: 'Fondo blanco con detalles navy',  icon: Sun },
-    { value: 'dark',   label: 'Oscuro', hint: 'Ideal para uso nocturno',         icon: Moon },
+    { value: 'light',  label: 'Claro',   hint: 'Fondo blanco con detalles navy', icon: Sun     },
+    { value: 'dark',   label: 'Oscuro',  hint: 'Ideal para uso nocturno',        icon: Moon    },
     { value: 'system', label: 'Sistema', hint: 'Se adapta a tu dispositivo',     icon: Monitor },
   ]
 
   const densityOptions: Array<{ value: Density; label: string; hint: string }> = [
-    { value: 'compact',     label: 'Compacto',    hint: 'Más información en pantalla' },
-    { value: 'normal',      label: 'Normal',      hint: 'Balance recomendado' },
-    { value: 'comfortable', label: 'Cómodo',      hint: 'Mayor respiración visual' },
+    { value: 'compact',     label: 'Compacto', hint: 'Más información en pantalla' },
+    { value: 'normal',      label: 'Normal',   hint: 'Balance recomendado'         },
+    { value: 'comfortable', label: 'Cómodo',   hint: 'Mayor respiración visual'    },
   ]
 
-  const accentOptions: Array<{ value: AccentColor; label: string; color: string }> = [
-    { value: 'gold',   label: 'Oro pirata', color: '#F0B429' },
-    { value: 'navy',   label: 'Navy',       color: '#0D2040' },
-    { value: 'pirate', label: 'Rojo',       color: '#DC2626' },
-  ]
+  // Forzar acento dorado de forma permanente
+  useEffect(() => {
+    if (settings.accent !== 'gold') update({ accent: 'gold' })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Encabezado */}
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold admin-text-title flex items-center gap-2">
-            <SettingsIcon className="w-6 h-6 text-gold-500" />
-            Ajustes
-          </h1>
-          <p className="text-sm admin-text-muted mt-0.5">
-            Personaliza la apariencia y comportamiento del panel administrador.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Personaliza la apariencia y comportamiento del panel administrador.
+        </p>
+        <div className="flex items-center gap-3 shrink-0">
           {justSaved && (
             <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
               <Check className="w-4 h-4" /> Restablecido
@@ -208,50 +192,13 @@ export default function AdminSettingsPage() {
         </div>
       </Section>
 
-      {/* Acento */}
-      <Section
-        icon={Sparkles}
-        title="Color de acento"
-        description="Color principal de botones, enlaces y elementos destacados."
-      >
-        <div className="grid grid-cols-3 gap-3">
-          {accentOptions.map((opt) => {
-            const active = settings.accent === opt.value
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => update({ accent: opt.value })}
-                className={clsx(
-                  'relative flex flex-col items-center gap-2 p-4 rounded-xl border transition-all',
-                  active
-                    ? 'border-gold-500 ring-2 ring-gold-400 bg-gold-50'
-                    : 'admin-surface admin-border hover:border-gold-400',
-                )}
-              >
-                {active && (
-                  <span className="absolute top-2 right-2 text-gold-700">
-                    <Check className="w-4 h-4" />
-                  </span>
-                )}
-                <span
-                  className="w-10 h-10 rounded-full shadow-inner border border-black/10"
-                  style={{ background: opt.color }}
-                />
-                <span className="font-semibold text-sm admin-text-body">{opt.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </Section>
-
-      {/* Otros */}
+      {/* Preferencias generales */}
       <Section
         icon={Eye}
         title="Preferencias generales"
         description="Ajusta elementos del panel a tu flujo de trabajo."
       >
-        <div className="divide-y admin-divide">
+        <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
           <ToggleSwitch
             checked={settings.showWelcomeBanner}
             onChange={(v) => update({ showWelcomeBanner: v })}
@@ -268,10 +215,14 @@ export default function AdminSettingsPage() {
       </Section>
 
       {/* Info */}
-      <div className="admin-surface-alt border admin-border rounded-xl p-4 text-xs admin-text-muted">
+      <div
+        className="rounded-xl p-4 text-xs border"
+        style={{ background: 'var(--bg-surface-alt)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+      >
         <p>
           Los ajustes se guardan localmente en tu navegador
-          (<code className="admin-text-body font-mono">localStorage</code>). No afectan la sesión de otros usuarios administradores.
+          (<code style={{ color: 'var(--text-body)' }} className="font-mono">localStorage</code>).
+          No afectan la sesión de otros usuarios administradores.
         </p>
       </div>
     </div>

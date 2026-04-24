@@ -1,12 +1,10 @@
-import { useState } from 'react'
-import { CalendarDays } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { CalendarDays, Search, Download } from 'lucide-react'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useReservationsByDate } from '@features/reservations/hooks/useReservations'
 import { formatCurrency } from '@utils/formatters'
 import { StatusBadge } from '@components/ui/Badge'
-import { Card, CardHeader, CardTitle } from '@components/ui/Card'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
-import { Button } from '@components/ui/Button'
 import { Link } from 'react-router-dom'
 import { PACKAGES } from '@constants/index'
 import type { PackageId } from '@constants/index'
@@ -14,72 +12,188 @@ import { CalendarPicker } from '@components/ui/CalendarPicker'
 import { format, parse } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+type StatusFilter = 'all' | 'pendiente' | 'pagada' | 'cancelada'
+
 export default function ReservationsPage() {
   const { selectedDate, setSelectedDate } = useReservationStore()
   const [calOpen, setCalOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [search, setSearch] = useState('')
   const { data, isLoading } = useReservationsByDate(selectedDate)
   const reservations = data?.data ?? []
 
+  const filtered = useMemo(() => {
+    let list = reservations
+    if (statusFilter !== 'all') list = list.filter(r => r.status === statusFilter)
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(r =>
+        r.contactName.toLowerCase().includes(q) ||
+        r.contactPhone?.toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [reservations, statusFilter, search])
+
+  // Métricas del footer
+  const totalPersonas    = filtered.reduce((s, r) => s + r.numberOfPeople, 0)
+  const ingresosFiltrados = filtered
+    .filter(r => r.status === 'pagada')
+    .reduce((s, r) => s + r.total, 0)
+  const pendientesCobro  = filtered
+    .filter(r => r.status === 'pendiente' || r.status === 'confirmada')
+    .reduce((s, r) => s + r.total, 0)
+
+  const statusCounts = {
+    pendiente: reservations.filter(r => r.status === 'pendiente').length,
+    pagada:    reservations.filter(r => r.status === 'pagada').length,
+    cancelada: reservations.filter(r => r.status === 'cancelada').length,
+  }
+
+  const statusChips: Array<{ key: StatusFilter; label: string }> = [
+    { key: 'all',       label: 'Todas' },
+    { key: 'pendiente', label: 'Pendiente' },
+    { key: 'pagada',    label: 'Pagada' },
+    { key: 'cancelada', label: 'Cancelada' },
+  ]
+
+  const exportCSV = useCallback(() => {
+    const headers = ['Nombre', 'Teléfono', 'Hora', 'Personas', 'Paquete', 'Subtotal', 'Descuento', 'Total', 'Estado', 'Método de Pago']
+    const rows = filtered.map(r => {
+      const pkg = PACKAGES[r.packageId as PackageId]
+      return [r.contactName, r.contactPhone ?? '', r.time, r.numberOfPeople, pkg?.label ?? r.packageId, r.subtotal, r.discount, r.total, r.status, r.paymentMethod ?? '']
+    })
+    const csv = [headers, ...rows].map(row => row.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `reservaciones-${selectedDate}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [filtered, selectedDate])
+
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <h1 className="text-2xl font-display font-bold text-navy-900">Reservaciones</h1>
+    <div className="space-y-5">
+      {/* Filter bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4 flex-wrap">
         <button
           type="button"
           onClick={() => setCalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-navy-200 bg-white text-navy-700 text-sm font-medium hover:border-navy-400 hover:bg-navy-50 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors shadow-sm shrink-0"
+          style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)', color: 'var(--text-body)' }}
         >
-          <CalendarDays className="w-4 h-4 text-navy-400" />
+          <CalendarDays className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span className="capitalize">
             {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), "d 'de' MMMM yyyy", { locale: es })}
           </span>
         </button>
-        <CalendarPicker
-          value={selectedDate}
-          onChange={setSelectedDate}
-          isOpen={calOpen}
-          onClose={() => setCalOpen(false)}
-          adminMode
-        />
+        <CalendarPicker value={selectedDate} onChange={setSelectedDate} isOpen={calOpen} onClose={() => setCalOpen(false)} adminMode />
+
+        <div className="bp-status-chips flex-1">
+          {statusChips.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStatusFilter(key)}
+              className={`bp-status-chip${statusFilter === key ? ' active' : ''}`}
+            >
+              {label}
+              <span className="bp-status-chip-count">
+                {key === 'all' ? reservations.length : (statusCounts[key as keyof typeof statusCounts] ?? 0)}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="relative shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Buscar nombre o teléfono…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-4 py-2 rounded-lg border text-sm w-56 focus:outline-none"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)', color: 'var(--text-body)' }}
+          />
+        </div>
       </div>
 
-      <Card padding="none" className="border border-navy-100">
-        <CardHeader className="px-6 pt-6">
-          <CardTitle>Reservaciones del día</CardTitle>
-        </CardHeader>
+      {/* Table card */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="font-display font-bold text-sm tracking-wide" style={{ color: 'var(--text-title)' }}>
+            {filtered.length} Reservaciones
+          </span>
+          <button
+            type="button"
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors disabled:opacity-40"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-body)', background: 'var(--bg-surface-alt)' }}
+          >
+            <Download size={13} />
+            Exportar
+          </button>
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-12"><LoadingSpinner /></div>
-        ) : reservations.length === 0 ? (
-          <p className="text-center text-navy-400 py-12">No hay reservaciones para esta fecha.</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
+            {reservations.length === 0 ? 'No hay reservaciones para esta fecha.' : 'No hay resultados con los filtros aplicados.'}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-navy-50 text-navy-600 text-xs uppercase">
+              <thead style={{ background: 'var(--bg-surface-alt)' }}>
                 <tr>
-                  {['Nombre', 'Teléfono', 'Hora', 'Personas', 'Paquete', 'Subtotal', 'Desc.', 'Total', 'Estado', 'Pago', 'Acción'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap">{h}</th>
+                  {['Nombre', 'Hora', 'Personas', 'Paquete', 'Subtotal', 'Desc.', 'Total', 'Estado', 'Pago', 'Acción'].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-navy-100">
-                {reservations.map((r) => {
+              <tbody>
+                {filtered.map((r) => {
                   const pkg = PACKAGES[r.packageId as PackageId]
                   return (
-                    <tr key={r.id} className="hover:bg-navy-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-navy-900">{r.contactName}</td>
-                      <td className="px-4 py-3 text-navy-600">{r.contactPhone}</td>
-                      <td className="px-4 py-3 text-navy-700">{r.time}</td>
-                      <td className="px-4 py-3 text-center text-navy-700">{r.numberOfPeople}</td>
-                      <td className="px-4 py-3 text-navy-700">{pkg?.icon} {pkg?.label}</td>
-                      <td className="px-4 py-3 text-navy-700">{formatCurrency(r.subtotal)}</td>
-                      <td className="px-4 py-3 text-gold-700 font-semibold">{r.discount > 0 ? `-${formatCurrency(r.discount)}` : '–'}</td>
-                      <td className="px-4 py-3 font-bold text-navy-900">{formatCurrency(r.total)}</td>
-                      <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
-                      <td className="px-4 py-3 capitalize text-navy-600">{r.paymentMethod ?? '–'}</td>
-                      <td className="px-4 py-3">
-                        <Link to={`/admin/venta/${r.id}`}>
-                          <Button variant="ghost" size="sm">Gestionar</Button>
+                    <tr
+                      key={r.id}
+                      className="transition-colors"
+                      style={{ borderTop: '1px solid var(--border)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-surface-alt)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td className="px-4 py-4 font-semibold" style={{ color: 'var(--text-title)' }}>{r.contactName}</td>
+                      <td className="px-4 py-4 font-mono text-xs font-bold" style={{ color: 'var(--text-body)' }}>{r.time}</td>
+                      <td className="px-4 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
+                      <td className="px-4 py-4" style={{ color: 'var(--text-body)' }}>{pkg?.label ?? r.packageId.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-4 font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.subtotal)}</td>
+                      <td className="px-4 py-4 font-semibold" style={{ color: r.discount > 0 ? '#F87171' : 'var(--text-muted)' }}>
+                        {r.discount > 0 ? `-${formatCurrency(r.discount)}` : '—'}
+                      </td>
+                      <td className="px-4 py-4 font-bold" style={{ color: 'var(--text-title)' }}>{formatCurrency(r.total)}</td>
+                      <td className="px-4 py-4"><StatusBadge status={r.status} /></td>
+                      <td className="px-4 py-4 capitalize" style={{ color: 'var(--text-muted)' }}>{r.paymentMethod ?? '—'}</td>
+                      <td className="px-4 py-4">
+                        <Link
+                          to={`/admin/venta/${r.id}`}
+                          className="text-xs font-bold transition-opacity hover:opacity-70"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          Gestionar
                         </Link>
                       </td>
                     </tr>
@@ -89,7 +203,39 @@ export default function ReservationsPage() {
             </table>
           </div>
         )}
-      </Card>
+
+        {/* ── Summary footer ── */}
+        {filtered.length > 0 && !isLoading && (
+          <div
+            className="grid grid-cols-3"
+            style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-surface-alt)' }}
+          >
+            {/* Total Personas */}
+            <div className="px-6 py-5" style={{ borderRight: '1px solid var(--border)' }}>
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                Total Personas
+              </p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--text-title)' }}>{totalPersonas}</p>
+            </div>
+
+            {/* Ingresos Filtrados */}
+            <div className="px-6 py-5" style={{ borderRight: '1px solid var(--border)' }}>
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                Ingresos Filtrados
+              </p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>{formatCurrency(ingresosFiltrados)}</p>
+            </div>
+
+            {/* Pendientes de Cobro */}
+            <div className="px-6 py-5">
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                Pendientes de Cobro
+              </p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--text-title)' }}>{formatCurrency(pendientesCobro)}</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

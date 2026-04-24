@@ -64,6 +64,7 @@ export interface BusinessSettings {
   closedWeekday: number      // 0=dom … 6=sáb
   activeTimeSlots: string[]  // e.g. ['09:00','11:00','13:00','15:00','17:00']
   boatCapacity: number
+  closedDates: string[]      // fechas específicas cerradas 'yyyy-MM-dd'
 }
 
 export interface ProcessPaymentDto {

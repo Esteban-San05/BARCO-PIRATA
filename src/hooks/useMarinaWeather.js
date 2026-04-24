@@ -39,6 +39,7 @@ export function useMarinaWeather(fecha) {
               direccionViento: pronostico.clima.direccionViento ?? null,
               precipitacion:   pronostico.clima.precipitacion   ?? null,
               codigoClima:     pronostico.clima.codigoClima      ?? null,
+              uvIndex:         null,
             },
             marina: {
               alturaOlas:         pronostico.marina.alturaOlas         ?? null,

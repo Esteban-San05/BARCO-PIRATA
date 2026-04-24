@@ -11,6 +11,7 @@ interface TimeSlotPickerProps {
   onChange: (time: string) => void
   numberOfPeople: number       // para saber si el slot tiene cupo suficiente
   error?: string
+  activeTimeSlots?: string[]   // slots activos según business_settings
 }
 
 // Mapeo time → clave de traducción (para slots.<key> y descriptions.<key>)
@@ -39,9 +40,14 @@ export function TimeSlotPicker({
   onChange,
   numberOfPeople,
   error,
+  activeTimeSlots,
 }: TimeSlotPickerProps) {
   const { t } = useTranslation()
   const { data: availability, isLoading, isError } = useAvailability(date)
+
+  const visibleSlots = activeTimeSlots
+    ? TIME_SLOTS.filter(s => activeTimeSlots.includes(s.time))
+    : TIME_SLOTS
 
   // Detecta si la fecha seleccionada es HOY para saber qué slots ya pasaron.
   const todayIso = format(new Date(), 'yyyy-MM-dd')
@@ -84,7 +90,7 @@ export function TimeSlotPicker({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {TIME_SLOTS.map((slot) => {
+        {visibleSlots.map((slot) => {
           const slotKey   = SLOT_KEYS[slot.time] ?? 'morning'
           const available = availableInSlot(availability, slot.time)
           const isPast    = isToday && slot.time <= nowHHMM

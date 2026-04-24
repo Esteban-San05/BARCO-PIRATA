@@ -7,24 +7,46 @@ interface BadgeProps {
   className?: string
 }
 
-// Semántica pirata: sólo 3 colores → navy · gold · pirate
-const variantClasses = {
-  success: 'bg-gold-100 text-gold-900 border border-gold-300',   // oro conseguido = pagada
-  warning: 'bg-gold-50  text-gold-800 border border-gold-200',   // amarillo claro = pendiente
-  danger:  'bg-pirate-100 text-pirate-800 border border-pirate-300', // rojo = cancelada
-  info:    'bg-navy-100 text-navy-900 border border-navy-300',   // azul = confirmada
-  neutral: 'bg-navy-50 text-navy-700 border border-navy-200',
+// Pill styles using inline CSS variables — look great in both light and dark mode
+const variantStyles: Record<NonNullable<BadgeProps['variant']>, React.CSSProperties> = {
+  success: {
+    background: 'rgba(240,180,41,0.15)',
+    color: '#F0B429',
+    border: '1px solid rgba(240,180,41,0.35)',
+  },
+  warning: {
+    background: 'rgba(234,179,8,0.15)',
+    color: '#EAB308',
+    border: '1px solid rgba(234,179,8,0.35)',
+  },
+  danger: {
+    background: 'rgba(220,38,38,0.15)',
+    color: '#F87171',
+    border: '1px solid rgba(220,38,38,0.35)',
+  },
+  info: {
+    background: 'rgba(59,130,246,0.15)',
+    color: '#60A5FA',
+    border: '1px solid rgba(59,130,246,0.35)',
+  },
+  neutral: {
+    background: 'rgba(107,133,166,0.15)',
+    color: 'var(--text-muted)',
+    border: '1px solid rgba(107,133,166,0.25)',
+  },
 }
 
 export function Badge({ children, variant = 'neutral', className }: BadgeProps) {
   return (
-    <span className={clsx('badge', variantClasses[variant], className)}>
+    <span
+      className={clsx('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', className)}
+      style={variantStyles[variant]}
+    >
       {children}
     </span>
   )
 }
 
-// Mapa rápido de estados de reservación → variante de badge
 const statusVariantMap: Record<ReservationStatus, BadgeProps['variant']> = {
   pendiente:  'warning',
   confirmada: 'info',
