@@ -355,12 +355,14 @@ html[data-admin-animations="off"] .admin-scope * {
 html[data-admin-theme="dark"] {
   --bg-app:         #060E1C;
   --bg-surface:     #0D1F3C;
-  --bg-surface-alt: #0D2040;
-  --border:         rgba(255,255,255,0.08);
+  --bg-surface-alt: #162847;
+  --border:         rgba(255,255,255,0.12);
   --text-title:     #ffffff;
   --text-body:      #CBD5E1;
-  --text-muted:     #64748B;
+  --text-muted:     #8BA3C0;
   --text-subtle:    #4A5568;
+  --shadow-card:    0 2px 16px rgba(0,0,0,0.35);
+  --shadow-card-lg: 0 8px 32px rgba(0,0,0,0.5);
 }
 
 /* ── Animaciones de página ───────────────────────────────────────────── */
@@ -604,7 +606,7 @@ html[data-admin-theme="dark"] .bp-weather-favorable { background: rgba(34,197,94
 html[data-admin-theme="dark"] .bp-weather-bad       { background: rgba(220,38,38,0.15) !important;  color: #FCA5A5 !important; }
 html[data-admin-theme="dark"] .bp-date-tab.active { background: var(--bg-surface-alt); }
 html[data-admin-theme="dark"] .bp-status-chip     { background: var(--bg-surface-alt); }
-html[data-admin-theme="dark"] .bp-kpi-card        { background: var(--bg-surface); border-color: var(--border); }
+html[data-admin-theme="dark"] .bp-kpi-card:not(.bp-kpi-card--accent) { background: var(--bg-surface); border-color: var(--border); }
 html[data-admin-theme="dark"] .bp-slot-row        { background: var(--bg-surface); border-color: var(--border); }
 html[data-admin-theme="dark"] .bp-forecast-row    { background: var(--bg-surface); border-color: var(--border); }
 html[data-admin-theme="dark"] .bp-weekday-btn     { background: var(--bg-surface); border-color: var(--border); color: var(--text-body); }
