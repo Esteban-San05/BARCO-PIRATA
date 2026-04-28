@@ -208,7 +208,7 @@ export default function ReservationPage() {
                   value={field.value || null}
                   onChange={(iso) => {
                     field.onChange(iso)
-                    setValue('time', '' as unknown as ReservationFormValues['time'])
+                    setValue('time', '') // Limpia la hora al cambiar fecha para forzar nueva selección
                   }}
                   closedWeekday={closedWeekday}
                   closedDates={closedDates}

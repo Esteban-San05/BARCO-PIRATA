@@ -42,7 +42,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 export default function PaymentPage() {
   const { t } = useTranslation()
   const { reservationId } = useParams<{ reservationId: string }>()
-  const { data: reservation, isLoading, refetch } = useReservation(reservationId ?? '')
+  const { data: reservation, isLoading, isError, refetch } = useReservation(reservationId ?? '')
   const [method, setMethod] = useState<'efectivo' | 'tarjeta'>('efectivo')
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -55,7 +55,35 @@ export default function PaymentPage() {
   }, [reservation?.contactEmail])
 
   if (isLoading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
+  if (isError) return (
+    <div className="container-app py-20 text-center">
+      <p className="text-navy-500 mb-4">No pudimos cargar los datos de tu reservación. Por favor intenta de nuevo.</p>
+      <button
+        type="button"
+        onClick={() => refetch()}
+        className="px-4 py-2 rounded-lg bg-gold-400 text-navy-900 font-semibold text-sm"
+      >
+        Reintentar
+      </button>
+    </div>
+  )
   if (!reservation) return <div className="text-center py-20 text-navy-500">{t('payment.notFound')}</div>
+
+  // Reservación cancelada — no se puede pagar
+  if (reservation.status === 'cancelada') {
+    return (
+      <div className="container-app py-16 max-w-md text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-100 border-4 border-red-200 mb-4">
+          <span className="text-4xl">⚠️</span>
+        </div>
+        <h2 className="text-2xl font-display font-bold text-navy-900 mb-2">Reservación cancelada</h2>
+        <p className="text-navy-500 mb-6">Esta reservación fue cancelada y no puede procesarse un pago.</p>
+        <a href="/reservar" className="inline-block px-6 py-3 rounded-xl bg-gold-400 text-navy-900 font-bold text-sm">
+          Hacer nueva reservación
+        </a>
+      </div>
+    )
+  }
 
   if (reservation.status === 'pagada') {
     return (

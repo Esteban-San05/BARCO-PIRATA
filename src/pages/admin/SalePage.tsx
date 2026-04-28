@@ -20,6 +20,7 @@ export default function SalePage() {
   const { mutateAsync: cancelReservation, isPending: isCancelling } = useCancelReservation()
   const [paid, setPaid] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   if (isLoading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
   if (!reservation) return <div className="text-center py-20 text-navy-500">Reservación no encontrada.</div>
@@ -136,6 +137,16 @@ export default function SalePage() {
           </Card>
         )}
 
+        {/* Error de cancelación */}
+        {cancelError && (
+          <Card className="mt-4 border border-red-200 bg-red-50">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-red-700">{cancelError}</p>
+              <button type="button" onClick={() => setCancelError(null)} className="text-red-400 hover:text-red-600 ml-3 font-bold">✕</button>
+            </div>
+          </Card>
+        )}
+
         {/* Cancelar reservación */}
         {!isPagada && !isCancelada && (
           <Card className="mt-4 border border-red-100 bg-red-50">
@@ -173,9 +184,14 @@ export default function SalePage() {
                     size="sm"
                     isLoading={isCancelling}
                     onClick={async () => {
-                      await cancelReservation(reservation.id)
-                      setConfirmCancel(false)
-                      navigate(-1)
+                      try {
+                        await cancelReservation(reservation.id)
+                        setConfirmCancel(false)
+                        navigate(-1)
+                      } catch (e) {
+                        setCancelError((e as Error)?.message ?? 'Error al cancelar')
+                        setConfirmCancel(false)
+                      }
                     }}
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
                   >

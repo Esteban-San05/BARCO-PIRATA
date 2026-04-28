@@ -204,6 +204,15 @@ export default function BackupPage() {
           ))}
         </div>
 
+        {/* Aviso de datos sensibles */}
+        <div className="flex items-start gap-2 rounded-lg p-3 bg-amber-900/20 border border-amber-500/30 text-amber-300 text-xs">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            El archivo de respaldo contiene <strong>datos personales</strong> (nombres, teléfonos y correos de clientes).
+            Guárdalo en un lugar seguro y no lo compartas.
+          </span>
+        </div>
+
         <StatusAlert status={exportStatus} />
 
         <Button

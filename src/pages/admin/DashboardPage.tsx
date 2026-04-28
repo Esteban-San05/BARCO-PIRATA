@@ -15,7 +15,7 @@ import { es } from 'date-fns/locale'
 export default function DashboardPage() {
   const { selectedDate, setSelectedDate } = useReservationStore()
   const [calOpen, setCalOpen] = useState(false)
-  const { data, isLoading } = useReservationsByDate(selectedDate)
+  const { data, isLoading, isError } = useReservationsByDate(selectedDate)
 
   const reservations = data?.data ?? []
   const totalRevenue = reservations
@@ -115,6 +115,10 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-12"><LoadingSpinner /></div>
+        ) : isError ? (
+          <p className="text-center py-12 text-sm" style={{ color: '#F87171' }}>
+            Error al cargar reservaciones. Intenta recargar la página.
+          </p>
         ) : reservations.length === 0 ? (
           <p className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
             No hay reservaciones para esta fecha.

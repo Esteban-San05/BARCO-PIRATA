@@ -1,6 +1,6 @@
 import { supabase } from '@lib/supabase'
 import type { Reservation, CreateReservationDto, PaginatedResponse } from '@app-types/index'
-import { sanitizeObject } from '@utils/security'
+import { sanitizeObject, sanitizePhone } from '@utils/security'
 import { calculatePrice } from '@utils/pricing'
 import type { PackageId } from '@constants/index'
 
@@ -44,7 +44,7 @@ export const reservationService = {
       .from('reservations')
       .insert({
         contact_name:     clean.contactName,
-        contact_phone:    clean.contactPhone,
+        contact_phone:    sanitizePhone(clean.contactPhone),
         contact_email:    clean.contactEmail?.trim().toLowerCase() ?? null,
         date:             clean.date,
         time:             clean.time,
@@ -134,11 +134,23 @@ export const reservationService = {
       .from('reservations')
       .update({ status: 'cancelada' })
       .eq('id', id)
-      .neq('status', 'cancelada') // idempotente
+      .neq('status', 'cancelada') // idempotente: no actualiza si ya está cancelada
       .select()
-      .single()
+      .maybeSingle() // devuelve null si ya estaba cancelada (0 filas), sin lanzar error
 
     if (error) throw new Error(error.message)
+
+    // Si data es null, la reservación ya estaba cancelada → la devolvemos tal cual
+    if (!data) {
+      const { data: existing, error: fetchError } = await supabase
+        .from('reservations')
+        .select()
+        .eq('id', id)
+        .single()
+      if (fetchError) throw new Error(fetchError.message)
+      return mapRow(existing as Record<string, unknown>)
+    }
+
     return mapRow(data as Record<string, unknown>)
   },
 }

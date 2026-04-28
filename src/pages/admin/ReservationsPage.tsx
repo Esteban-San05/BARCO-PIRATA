@@ -19,9 +19,10 @@ export default function ReservationsPage() {
   const [calOpen, setCalOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
-  const { data, isLoading } = useReservationsByDate(selectedDate)
+  const { data, isLoading, isError, error } = useReservationsByDate(selectedDate)
   const { mutateAsync: cancelReservation } = useCancelReservation()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const reservations = data?.data ?? []
 
   const filtered = useMemo(() => {
@@ -128,6 +129,14 @@ export default function ReservationsPage() {
         className="rounded-xl overflow-hidden"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
       >
+        {/* Error de cancelación */}
+        {cancelError && (
+          <div className="flex items-center justify-between px-5 py-3 text-sm" style={{ background: 'rgba(248,113,113,0.12)', borderBottom: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}>
+            <span>{cancelError}</span>
+            <button type="button" onClick={() => setCancelError(null)} className="ml-3 font-bold hover:opacity-70">✕</button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <span className="font-display font-bold text-sm tracking-wide" style={{ color: 'var(--text-title)' }}>
@@ -147,6 +156,10 @@ export default function ReservationsPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-12"><LoadingSpinner /></div>
+        ) : isError ? (
+          <div className="px-5 py-8 text-center text-sm" style={{ color: '#F87171' }}>
+            Error al cargar reservaciones: {(error as Error)?.message ?? 'Error desconocido'}
+          </div>
         ) : filtered.length === 0 ? (
           <p className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
             {reservations.length === 0 ? 'No hay reservaciones para esta fecha.' : 'No hay resultados con los filtros aplicados.'}
@@ -216,8 +229,14 @@ export default function ReservationsPage() {
                                 <button
                                   type="button"
                                   onClick={async () => {
-                                    await cancelReservation(r.id)
-                                    setConfirmingId(null)
+                                    try {
+                                      await cancelReservation(r.id)
+                                      setConfirmingId(null)
+                                      setCancelError(null)
+                                    } catch (e) {
+                                      setCancelError((e as Error)?.message ?? 'Error al cancelar')
+                                      setConfirmingId(null)
+                                    }
                                   }}
                                   className="text-xs font-bold text-red-400 hover:text-red-600 transition-colors"
                                 >
