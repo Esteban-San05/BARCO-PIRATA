@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Clock, CalendarOff, Ship, Save, Check, Plus, X, CloudLightning, Minus } from 'lucide-react'
 import { clsx } from 'clsx'
 import { format, parse } from 'date-fns'
@@ -246,11 +246,11 @@ export default function SchedulePage() {
     setClosedDates(prev => prev.filter(d => d !== iso))
   }
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     await save({ closedWeekday, activeTimeSlots: activeSlots, boatCapacity, closedDates })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
-  }
+  }, [save, closedWeekday, activeSlots, boatCapacity, closedDates])
 
   // Enviar botón de guardar al header
   useEffect(() => {
@@ -268,7 +268,7 @@ export default function SchedulePage() {
       </div>
     )
     return () => setSlot(null)
-  }, [saving, saved, setSlot])
+  }, [saving, saved, setSlot, handleSave])
 
   if (isLoading) return (
     <div className="flex items-center justify-center py-20" style={{ color: 'var(--text-muted)' }}>

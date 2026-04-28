@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { CalendarDays, Search, Download } from 'lucide-react'
 import { useReservationStore } from '@app/store/reservationStore'
-import { useReservationsByDate } from '@features/reservations/hooks/useReservations'
+import { useReservationsByDate, useCancelReservation } from '@features/reservations/hooks/useReservations'
 import { formatCurrency } from '@utils/formatters'
 import { StatusBadge } from '@components/ui/Badge'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
@@ -20,6 +20,8 @@ export default function ReservationsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
   const { data, isLoading } = useReservationsByDate(selectedDate)
+  const { mutateAsync: cancelReservation } = useCancelReservation()
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const reservations = data?.data ?? []
 
   const filtered = useMemo(() => {
@@ -199,13 +201,50 @@ export default function ReservationsPage() {
                       <td className="px-4 py-4"><StatusBadge status={r.status} /></td>
                       <td className="hidden lg:table-cell px-4 py-4 capitalize" style={{ color: 'var(--text-muted)' }}>{r.paymentMethod ?? '—'}</td>
                       <td className="px-4 py-4">
-                        <Link
-                          to={`/admin/venta/${r.id}`}
-                          className="text-xs font-bold transition-opacity hover:opacity-70"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          Gestionar
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            to={`/admin/venta/${r.id}`}
+                            className="text-xs font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            Gestionar
+                          </Link>
+                          {r.status !== 'cancelada' && r.status !== 'pagada' && (
+                            confirmingId === r.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>¿Cancelar?</span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await cancelReservation(r.id)
+                                    setConfirmingId(null)
+                                  }}
+                                  className="text-xs font-bold text-red-400 hover:text-red-600 transition-colors"
+                                >
+                                  Sí
+                                </button>
+                                <span style={{ color: 'var(--border)' }}>·</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmingId(null)}
+                                  className="text-xs font-bold transition-colors"
+                                  style={{ color: 'var(--text-muted)' }}
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingId(r.id)}
+                                className="text-xs font-bold transition-colors hover:opacity-70 whitespace-nowrap"
+                                style={{ color: '#f87171' }}
+                              >
+                                Cancelar
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

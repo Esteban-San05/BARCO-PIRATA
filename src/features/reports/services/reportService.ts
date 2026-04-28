@@ -38,6 +38,7 @@ export interface RangeReport {
   endDate: string
   granularity: Granularity
   totalReservations: number
+  totalCancelled: number
   totalPeople: number
   totalRevenue: number
   byPackage: Record<PackageId, { count: number; revenue: number }>
@@ -53,6 +54,7 @@ export interface RangeReport {
     revenue: number
   }>
   reservations: Reservation[]
+  cancelledReservations: Reservation[]
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -158,13 +160,16 @@ export const reportService = {
       .select('*')
       .gte('date', startDate)
       .lte('date', endDate)
-      .neq('status', 'cancelada')
       .order('date', { ascending: true })
       .order('time', { ascending: true })
 
     if (error) throw new Error(error.message)
 
-    const reservations = ((data ?? []) as Record<string, unknown>[]).map(rowToReservation)
+    const all = ((data ?? []) as Record<string, unknown>[]).map(rowToReservation)
+
+    // Separar canceladas de activas para que no afecten métricas de ingreso
+    const cancelledReservations = all.filter((r) => r.status === 'cancelada')
+    const reservations          = all.filter((r) => r.status !== 'cancelada')
 
     const byPackage: RangeReport['byPackage'] = {
       CON_COMIDA:   { count: 0, revenue: 0 },
@@ -206,12 +211,14 @@ export const reportService = {
     return {
       startDate, endDate, granularity,
       totalReservations: reservations.length,
+      totalCancelled:    cancelledReservations.length,
       totalPeople:  reservations.reduce((s, r) => s + r.numberOfPeople, 0),
       totalRevenue: reservations.reduce((s, r) => s + r.total, 0),
       byPackage,
       byPaymentMethod,
       series,
       reservations,
+      cancelledReservations,
     }
   },
 

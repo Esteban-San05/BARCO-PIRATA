@@ -128,4 +128,17 @@ export const reservationService = {
     if (error) throw new Error(error.message)
     return mapRow(data as Record<string, unknown>)
   },
+
+  async cancel(id: string): Promise<Reservation> {
+    const { data, error } = await supabase
+      .from('reservations')
+      .update({ status: 'cancelada' })
+      .eq('id', id)
+      .neq('status', 'cancelada') // idempotente
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+    return mapRow(data as Record<string, unknown>)
+  },
 }

@@ -138,6 +138,10 @@
   .panel-danger {
     @apply bg-pirate-50 border border-pirate-200 text-pirate-800 rounded-xl p-4;
   }
+
+  .panel-warning {
+    @apply bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-4;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

@@ -34,3 +34,16 @@ export function useCreateReservation() {
     },
   })
 }
+
+export function useCancelReservation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => reservationService.cancel(id),
+    onSuccess: (reservation) => {
+      queryClient.invalidateQueries({ queryKey: reservationKeys.byDate(reservation.date) })
+      queryClient.invalidateQueries({ queryKey: reservationKeys.byId(reservation.id) })
+      queryClient.invalidateQueries({ queryKey: ['auditLog'] })
+    },
+  })
+}
