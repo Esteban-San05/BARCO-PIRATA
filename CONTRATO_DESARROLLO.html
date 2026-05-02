@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contrato de Servicios de Desarrollo — Barco Pirata</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 12pt;
+      line-height: 1.75;
+      color: #1a1a1a;
+      background: #f5f5f0;
+      padding: 40px 20px;
+    }
+
+    .page {
+      max-width: 780px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 72px 80px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+      border-top: 6px solid #0D2040;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #0D2040;
+      padding-bottom: 28px;
+      margin-bottom: 36px;
+    }
+    .header .label {
+      font-family: 'Inter', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 22pt;
+      font-weight: 700;
+      color: #0D2040;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .header .subtitle {
+      font-style: italic;
+      color: #555;
+      font-size: 11pt;
+    }
+    .folio {
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5pt;
+      color: #999;
+      margin-top: 10px;
+      letter-spacing: 1px;
+    }
+
+    /* ── Secciones ── */
+    .section {
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5pt;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #0D2040;
+      border-bottom: 1px solid #d0d0d0;
+      padding-bottom: 5px;
+      margin-bottom: 14px;
+    }
+    p {
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+
+    /* ── Partes ── */
+    .parties-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 10px;
+    }
+    .party-card {
+      border: 1px solid #d8d8d8;
+      border-radius: 6px;
+      padding: 16px 18px;
+      background: #fafafa;
+    }
+    .party-role {
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .party-name {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0D2040;
+      margin-bottom: 4px;
+    }
+    .party-detail {
+      font-size: 10pt;
+      color: #555;
+    }
+    .blank {
+      display: inline-block;
+      border-bottom: 1px solid #333;
+      min-width: 200px;
+      height: 1.2em;
+      vertical-align: bottom;
+    }
+
+    /* ── Lista de servicios ── */
+    ol, ul {
+      padding-left: 22px;
+      margin-bottom: 10px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* ── Precio ── */
+    .price-box {
+      border: 2px solid #0D2040;
+      border-radius: 6px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 12px 0;
+    }
+    .price-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 9pt;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #555;
+    }
+    .price-amount {
+      font-size: 22pt;
+      font-weight: 700;
+      color: #0D2040;
+      letter-spacing: 2px;
+      border-bottom: 2px solid #0D2040;
+      min-width: 220px;
+      text-align: center;
+      padding-bottom: 2px;
+    }
+
+    /* ── Mantenimiento destacado ── */
+    .maintenance-banner {
+      background: #f0f4fa;
+      border-left: 4px solid #0D2040;
+      padding: 14px 18px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+    }
+    .maintenance-banner strong {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 9pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #0D2040;
+      margin-bottom: 4px;
+    }
+
+    /* ── Firmas ── */
+    .signatures {
+      margin-top: 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+    }
+    .sig-block {
+      display: flex;
+      flex-direction: column;
+    }
+    .sig-role {
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 48px;
+    }
+    .sig-line {
+      border-top: 1.5px solid #333;
+      padding-top: 8px;
+    }
+    .sig-name {
+      font-weight: 700;
+      font-size: 11pt;
+      color: #0D2040;
+    }
+    .sig-detail {
+      font-size: 9.5pt;
+      color: #555;
+      margin-top: 2px;
+    }
+    .sig-date {
+      font-family: 'Inter', sans-serif;
+      font-size: 9pt;
+      color: #888;
+      margin-top: 10px;
+    }
+    .sig-date-line {
+      display: inline-block;
+      border-bottom: 1px solid #aaa;
+      min-width: 140px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid #ddd;
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #aaa;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; padding: 40px 60px; border-top: none; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Botón imprimir (no aparece al imprimir) -->
+  <div class="no-print" style="max-width:780px;margin:0 auto 16px;text-align:right;">
+    <button onclick="window.print()"
+      style="font-family:sans-serif;font-size:11px;padding:8px 18px;background:#0D2040;color:#fff;border:none;border-radius:5px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;">
+      Imprimir / Guardar PDF
+    </button>
+  </div>
+
+  <div class="page">
+
+    <!-- ── ENCABEZADO ── -->
+    <div class="header">
+      <div class="label">Documento Legal</div>
+      <h1>Contrato de Servicios<br/>de Desarrollo de Software</h1>
+      <div class="subtitle">Plataforma Web de Reservaciones — Barco Pirata</div>
+      <div class="folio">Puerto Peñasco, Sonora, México &nbsp;·&nbsp; 2026</div>
+    </div>
+
+    <!-- ── PARTES ── -->
+    <div class="section">
+      <div class="section-title">I. Partes del contrato</div>
+      <p>El presente contrato de prestación de servicios de desarrollo de software se celebra entre las siguientes partes:</p>
+
+      <div class="parties-grid">
+        <div class="party-card">
+          <div class="party-role">Prestador del Servicio</div>
+          <div class="party-name">Jesus Sanchez</div>
+          <div class="party-detail">Desarrollador de Software<br/>Puerto Peñasco, Sonora</div>
+        </div>
+        <div class="party-card">
+          <div class="party-role">Cliente / Contratante</div>
+          <div class="party-name"><span class="blank">&nbsp;</span></div>
+          <div class="party-detail">
+            Representante de:<br/>
+            Barco Pirata de Puerto Peñasco
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OBJETO ── -->
+    <div class="section">
+      <div class="section-title">II. Objeto del contrato</div>
+      <p>
+        El Prestador del Servicio se compromete a desarrollar e implementar las modificaciones
+        acordadas sobre la plataforma web de reservaciones <strong>Barco Pirata</strong>,
+        actualmente en operación en Puerto Peñasco, Sonora. Los cambios forman parte del
+        siguiente alcance técnico:
+      </p>
+      <ol>
+        <li>Eliminación del flujo de pago en línea (Stripe) del proceso de reservación público.</li>
+        <li>Implementación de notificaciones automáticas al momento de una nueva reserva:
+          email de confirmación al cliente y aviso por WhatsApp/correo a la administradora.</li>
+        <li>Rediseño de la página de confirmación de reserva con instrucciones de presentación y pago presencial.</li>
+        <li>Indicador visual en el panel administrativo que muestra el avance de personas por horario
+          frente al mínimo requerido de <strong>30 personas</strong> para que el barco zarpe.</li>
+        <li>Campo configurable desde el panel de ajustes para modificar el mínimo de personas requerido.</li>
+        <li>Mejoras de seguridad previamente identificadas: corrección de vulnerabilidades IDOR,
+          XSS en emails y autenticación en Edge Functions.</li>
+      </ol>
+    </div>
+
+    <!-- ── ENTREGABLES ── -->
+    <div class="section">
+      <div class="section-title">III. Entregables</div>
+      <p>Al término del desarrollo, el Cliente recibirá:</p>
+      <ul>
+        <li>Código fuente actualizado y funcional de la plataforma web.</li>
+        <li>Migraciones de base de datos aplicadas al entorno de producción en Supabase.</li>
+        <li>Edge Functions desplegadas y probadas.</li>
+        <li>Documentación técnica de los cambios realizados.</li>
+        <li>Una sesión de demostración y entrega formal del sistema.</li>
+      </ul>
+    </div>
+
+    <!-- ── PLAZO ── -->
+    <div class="section">
+      <div class="section-title">IV. Plazo de entrega</div>
+      <p>
+        El Prestador del Servicio se compromete a entregar la totalidad de los cambios descritos
+        en el presente contrato en un plazo de <strong><span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></strong>
+        días hábiles a partir de la fecha de firma del presente documento y del pago acordado.
+      </p>
+    </div>
+
+    <!-- ── PRECIO ── -->
+    <div class="section">
+      <div class="section-title">V. Precio y forma de pago</div>
+      <p>
+        El costo total por los servicios de desarrollo descritos en este contrato es el siguiente:
+      </p>
+
+      <div class="price-box">
+        <span class="price-label">Monto total convenido</span>
+        <span class="price-amount">&nbsp;</span>
+      </div>
+
+      <p style="font-size:10.5pt; color:#555;">
+        La forma y plazos de pago se acuerdan de la siguiente manera:
+        <span class="blank" style="min-width:360px;">&nbsp;</span>
+      </p>
+    </div>
+
+    <!-- ── MANTENIMIENTO ── -->
+    <div class="section">
+      <div class="section-title">VI. Mantenimiento y soporte</div>
+
+      <div class="maintenance-banner">
+        <strong>Mantenimiento gratuito por 12 meses</strong>
+        El Prestador del Servicio incluye, sin costo adicional, un año completo de mantenimiento
+        correctivo a partir de la fecha de entrega formal del proyecto.
+      </div>
+
+      <p>El mantenimiento gratuito comprende:</p>
+      <ul>
+        <li>Corrección de errores (bugs) que sean consecuencia directa del desarrollo contratado.</li>
+        <li>Ajustes menores de funcionamiento que no impliquen nuevas funcionalidades.</li>
+        <li>Soporte técnico vía mensajería digital en horario hábil.</li>
+        <li>Actualización de dependencias críticas de seguridad durante el período de vigencia.</li>
+      </ul>
+      <p>
+        El mantenimiento <strong>no incluye</strong>: nuevas funcionalidades, rediseños,
+        integraciones con terceros no contempladas en el objeto de este contrato, ni cambios
+        derivados de decisiones de negocio posteriores a la entrega.
+      </p>
+      <p>
+        Transcurrido el período de doce meses, la continuación del mantenimiento o el desarrollo
+        de nuevas funcionalidades se cotizará por separado mediante un nuevo convenio.
+      </p>
+    </div>
+
+    <!-- ── PROPIEDAD INTELECTUAL ── -->
+    <div class="section">
+      <div class="section-title">VII. Propiedad intelectual</div>
+      <p>
+        Una vez liquidado el pago total convenido, el código fuente, diseños y demás
+        materiales desarrollados bajo este contrato serán propiedad exclusiva del Cliente.
+        El Prestador del Servicio podrá mencionar el proyecto en su portafolio profesional
+        sin revelar información confidencial del negocio.
+      </p>
+    </div>
+
+    <!-- ── CONFIDENCIALIDAD ── -->
+    <div class="section">
+      <div class="section-title">VIII. Confidencialidad</div>
+      <p>
+        Ambas partes se comprometen a tratar como estrictamente confidencial cualquier
+        información de negocio, datos de clientes, credenciales de acceso y estrategias
+        comerciales a las que tengan acceso durante la vigencia de este contrato y por
+        un período de <strong>dos años</strong> posteriores a su terminación.
+      </p>
+    </div>
+
+    <!-- ── VIGENCIA Y RESCISIÓN ── -->
+    <div class="section">
+      <div class="section-title">IX. Vigencia y rescisión</div>
+      <p>
+        El presente contrato entra en vigor en la fecha de su firma y concluye con la entrega
+        formal del proyecto y el vencimiento del período de mantenimiento gratuito.
+        Cualquiera de las partes podrá rescindirlo con un aviso por escrito de
+        <strong>15 días naturales</strong>, reconociendo el valor proporcional al trabajo
+        realizado hasta ese momento.
+      </p>
+    </div>
+
+    <!-- ── FIRMAS ── -->
+    <div class="signatures">
+      <div class="sig-block">
+        <div class="sig-role">Prestador del Servicio</div>
+        <div class="sig-line">
+          <div class="sig-name">Jesus Sanchez</div>
+          <div class="sig-detail">Desarrollador de Software</div>
+          <div class="sig-date">
+            Fecha: <span class="sig-date-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sig-block">
+        <div class="sig-role">Cliente / Contratante</div>
+        <div class="sig-line">
+          <div class="sig-name"><span class="blank">&nbsp;</span></div>
+          <div class="sig-detail">Representante autorizado<br/>Barco Pirata de Puerto Peñasco</div>
+          <div class="sig-date">
+            Fecha: <span class="sig-date-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FOOTER ── -->
+    <div class="footer">
+      Este documento constituye el acuerdo completo entre las partes respecto al objeto aquí descrito
+      y reemplaza cualquier acuerdo verbal previo. &nbsp;·&nbsp;
+      Puerto Peñasco, Sonora, México
+    </div>
+
+  </div>
+</body>
+</html>

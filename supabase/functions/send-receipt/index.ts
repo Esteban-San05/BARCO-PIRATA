@@ -16,6 +16,10 @@
 //
 //   Deploy:
 //     supabase functions deploy send-receipt --no-verify-jwt
+//     (--no-verify-jwt es necesario para que clientes anónimos reciban su
+//      propio recibo sin sesión activa. La autorización se hace a nivel de
+//      aplicación: se valida que el email destino coincida con el registrado
+//      en la reserva, o que el llamante sea staff autenticado.)
 // ════════════════════════════════════════════════════════════════════════
 
 import { serve } from 'https://deno.land/std@0.203.0/http/server.ts'
@@ -38,6 +42,15 @@ const PACKAGE_LABELS: Record<string, string> = {
   CON_COMIDA:   'Con Comida Incluida',
   SOLO_BEBIDAS: 'Solo Bebidas',
   SOLO_PASEO:   'Solo Paseo',
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#x27;')
 }
 
 function formatCurrency(n: number): string {
@@ -128,7 +141,7 @@ function buildHtml(r: Record<string, unknown>): string {
         <!-- Folio -->
         <tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;border-top:1px solid #e2e8f0;">
           <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">Folio</div>
-          <div style="font-family:'Courier New',monospace;font-size:12px;color:#334155;word-break:break-all;">${r.id}</div>
+          <div style="font-family:'Courier New',monospace;font-size:12px;color:#334155;word-break:break-all;">${escapeHtml(String(r.id ?? ''))}</div>
         </td></tr>
 
         <!-- Footer -->
@@ -146,7 +159,7 @@ function buildHtml(r: Record<string, unknown>): string {
 function row(label: string, value: unknown): string {
   return `<tr>
     <td style="padding:6px 0;color:#64748b;width:35%;">${label}</td>
-    <td style="padding:6px 0;font-weight:600;color:#0D2040;" align="right">${String(value ?? '')}</td>
+    <td style="padding:6px 0;font-weight:600;color:#0D2040;" align="right">${escapeHtml(String(value ?? ''))}</td>
   </tr>`
 }
 
@@ -177,6 +190,33 @@ serve(async (req) => {
 
     if (error || !reservation) {
       return json({ error: 'Reservación no encontrada' }, 404)
+    }
+
+    // ── Autorización ───────────────────────────────────────────────────────
+    // Staff autenticado (admin/vendedor): puede enviar a cualquier email.
+    // Cliente anónimo: el email destino debe coincidir con el registrado en
+    // la reserva para evitar que un tercero con el UUID spamee a quien quiera.
+    const authHeader = req.headers.get('Authorization') ?? ''
+    let isStaff = false
+
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7)
+      const { data: { user } } = await supabase.auth.getUser(token)
+      if (user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        isStaff = profile?.role === 'admin' || profile?.role === 'vendedor'
+      }
+    }
+
+    if (!isStaff) {
+      const storedEmail = (reservation.contact_email as string | null)?.trim().toLowerCase()
+      if (!storedEmail || storedEmail !== email.trim().toLowerCase()) {
+        return json({ error: 'No autorizado para enviar este recibo' }, 403)
+      }
     }
 
     const html    = buildHtml(reservation)
