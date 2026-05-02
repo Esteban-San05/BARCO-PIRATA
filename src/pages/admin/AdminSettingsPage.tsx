@@ -84,7 +84,7 @@ function Section({
 }) {
   return (
     <section
-      className="rounded-xl p-6"
+      className="rounded-xl p-4 sm:p-6"
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
     >
       <header className="flex items-start gap-3 mb-5">

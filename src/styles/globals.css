@@ -138,6 +138,10 @@
   .panel-danger {
     @apply bg-pirate-50 border border-pirate-200 text-pirate-800 rounded-xl p-4;
   }
+
+  .panel-warning {
+    @apply bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-4;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -304,9 +308,9 @@ html[data-admin-theme="dark"] .admin-scope .cal-day-sel {
 }
 
 /* Densidad — spacing global */
-html[data-admin-density="compact"]     .admin-scope main { @apply p-4; }
-html[data-admin-density="normal"]      .admin-scope main { @apply p-8; }
-html[data-admin-density="comfortable"] .admin-scope main { @apply p-12; }
+html[data-admin-density="compact"]     .admin-scope main { @apply p-3 sm:p-4; }
+html[data-admin-density="normal"]      .admin-scope main { @apply p-4 sm:p-6 lg:p-8; }
+html[data-admin-density="comfortable"] .admin-scope main { @apply p-4 sm:p-8 lg:p-12; }
 
 /* Animaciones (pueden deshabilitarse desde Ajustes) */
 html[data-admin-animations="off"] .admin-scope * {
@@ -350,6 +354,37 @@ html[data-admin-animations="off"] .admin-scope * {
   --radius:         10px;
   --shadow-card:    0 2px 12px rgba(13,32,64,0.07);
   --shadow-card-lg: 0 8px 32px rgba(13,32,64,0.13);
+}
+
+/* Cuando el panel admin está activo, el fondo del documento coincide
+   con el tema para que no asomen bordes de otro color */
+html[data-admin-theme] {
+  background: var(--bg-app);
+}
+html[data-admin-theme] body {
+  background: var(--bg-app);
+}
+
+/* ── Sin cursor de texto en elementos no editables del panel admin ────── */
+html[data-admin-theme] .admin-scope {
+  user-select: none;
+  cursor: default;
+}
+/* Restaurar donde sí se necesita escribir o seleccionar */
+html[data-admin-theme] .admin-scope input,
+html[data-admin-theme] .admin-scope textarea,
+html[data-admin-theme] .admin-scope select,
+html[data-admin-theme] .admin-scope [contenteditable],
+html[data-admin-theme] .admin-scope [role="textbox"] {
+  user-select: text;
+  cursor: text;
+}
+/* Botones y links mantienen su cursor pointer */
+html[data-admin-theme] .admin-scope button,
+html[data-admin-theme] .admin-scope a,
+html[data-admin-theme] .admin-scope [role="button"],
+html[data-admin-theme] .admin-scope label[for] {
+  cursor: pointer;
 }
 
 html[data-admin-theme="dark"] {
@@ -532,6 +567,7 @@ html[data-admin-theme="dark"] {
 .bp-weekday-grid {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px;
 }
+@media (max-width: 420px) { .bp-weekday-grid { grid-template-columns: repeat(4, 1fr); } }
 .bp-weekday-btn {
   padding: 10px 4px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
   border: 1.5px solid var(--border);

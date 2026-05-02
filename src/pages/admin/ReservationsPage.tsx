@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { CalendarDays, Search, Download } from 'lucide-react'
 import { useReservationStore } from '@app/store/reservationStore'
-import { useReservationsByDate } from '@features/reservations/hooks/useReservations'
+import { useReservationsByDate, useCancelReservation } from '@features/reservations/hooks/useReservations'
 import { formatCurrency } from '@utils/formatters'
 import { StatusBadge } from '@components/ui/Badge'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
@@ -19,7 +19,10 @@ export default function ReservationsPage() {
   const [calOpen, setCalOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
-  const { data, isLoading } = useReservationsByDate(selectedDate)
+  const { data, isLoading, isError, error } = useReservationsByDate(selectedDate)
+  const { mutateAsync: cancelReservation } = useCancelReservation()
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const reservations = data?.data ?? []
 
   const filtered = useMemo(() => {
@@ -82,11 +85,11 @@ export default function ReservationsPage() {
         <button
           type="button"
           onClick={() => setCalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors shadow-sm shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors shadow-sm max-w-full"
           style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)', color: 'var(--text-body)' }}
         >
-          <CalendarDays className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          <span className="capitalize">
+          <CalendarDays className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+          <span className="capitalize truncate">
             {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), "d 'de' MMMM yyyy", { locale: es })}
           </span>
         </button>
@@ -126,6 +129,14 @@ export default function ReservationsPage() {
         className="rounded-xl overflow-hidden"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
       >
+        {/* Error de cancelación */}
+        {cancelError && (
+          <div className="flex items-center justify-between px-5 py-3 text-sm" style={{ background: 'rgba(248,113,113,0.12)', borderBottom: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}>
+            <span>{cancelError}</span>
+            <button type="button" onClick={() => setCancelError(null)} className="ml-3 font-bold hover:opacity-70">✕</button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <span className="font-display font-bold text-sm tracking-wide" style={{ color: 'var(--text-title)' }}>
@@ -145,6 +156,10 @@ export default function ReservationsPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-12"><LoadingSpinner /></div>
+        ) : isError ? (
+          <div className="px-5 py-8 text-center text-sm" style={{ color: '#F87171' }}>
+            Error al cargar reservaciones: {(error as Error)?.message ?? 'Error desconocido'}
+          </div>
         ) : filtered.length === 0 ? (
           <p className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
             {reservations.length === 0 ? 'No hay reservaciones para esta fecha.' : 'No hay resultados con los filtros aplicados.'}
@@ -154,13 +169,24 @@ export default function ReservationsPage() {
             <table className="w-full text-sm">
               <thead style={{ background: 'var(--bg-surface-alt)' }}>
                 <tr>
-                  {['Nombre', 'Hora', 'Personas', 'Paquete', 'Subtotal', 'Desc.', 'Total', 'Estado', 'Pago', 'Acción'].map((h) => (
+                  {[
+                    { label: 'Nombre',   cls: '' },
+                    { label: 'Hora',     cls: 'hidden sm:table-cell' },
+                    { label: 'Personas', cls: 'hidden sm:table-cell' },
+                    { label: 'Paquete',  cls: 'hidden md:table-cell' },
+                    { label: 'Subtotal', cls: 'hidden md:table-cell' },
+                    { label: 'Desc.',    cls: 'hidden lg:table-cell' },
+                    { label: 'Total',    cls: '' },
+                    { label: 'Estado',   cls: '' },
+                    { label: 'Pago',     cls: 'hidden lg:table-cell' },
+                    { label: 'Acción',   cls: '' },
+                  ].map(({ label, cls }) => (
                     <th
-                      key={h}
-                      className="px-4 py-3 text-left font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                      key={label}
+                      className={`px-4 py-3 text-left font-bold text-[11px] uppercase tracking-wider whitespace-nowrap ${cls}`}
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      {h}
+                      {label}
                     </th>
                   ))}
                 </tr>
@@ -177,24 +203,67 @@ export default function ReservationsPage() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td className="px-4 py-4 font-semibold" style={{ color: 'var(--text-title)' }}>{r.contactName}</td>
-                      <td className="px-4 py-4 font-mono text-xs font-bold" style={{ color: 'var(--text-body)' }}>{r.time}</td>
-                      <td className="px-4 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
-                      <td className="px-4 py-4" style={{ color: 'var(--text-body)' }}>{pkg?.label ?? r.packageId.replace(/_/g, ' ')}</td>
-                      <td className="px-4 py-4 font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.subtotal)}</td>
-                      <td className="px-4 py-4 font-semibold" style={{ color: r.discount > 0 ? '#F87171' : 'var(--text-muted)' }}>
+                      <td className="hidden sm:table-cell px-4 py-4 font-mono text-xs font-bold" style={{ color: 'var(--text-body)' }}>{r.time}</td>
+                      <td className="hidden sm:table-cell px-4 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
+                      <td className="hidden md:table-cell px-4 py-4" style={{ color: 'var(--text-body)' }}>{pkg?.label ?? r.packageId.replace(/_/g, ' ')}</td>
+                      <td className="hidden md:table-cell px-4 py-4 font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.subtotal)}</td>
+                      <td className="hidden lg:table-cell px-4 py-4 font-semibold" style={{ color: r.discount > 0 ? '#F87171' : 'var(--text-muted)' }}>
                         {r.discount > 0 ? `-${formatCurrency(r.discount)}` : '—'}
                       </td>
                       <td className="px-4 py-4 font-bold" style={{ color: 'var(--text-title)' }}>{formatCurrency(r.total)}</td>
                       <td className="px-4 py-4"><StatusBadge status={r.status} /></td>
-                      <td className="px-4 py-4 capitalize" style={{ color: 'var(--text-muted)' }}>{r.paymentMethod ?? '—'}</td>
+                      <td className="hidden lg:table-cell px-4 py-4 capitalize" style={{ color: 'var(--text-muted)' }}>{r.paymentMethod ?? '—'}</td>
                       <td className="px-4 py-4">
-                        <Link
-                          to={`/admin/venta/${r.id}`}
-                          className="text-xs font-bold transition-opacity hover:opacity-70"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          Gestionar
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            to={`/admin/venta/${r.id}`}
+                            className="text-xs font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            Gestionar
+                          </Link>
+                          {r.status !== 'cancelada' && r.status !== 'pagada' && (
+                            confirmingId === r.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>¿Cancelar?</span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await cancelReservation(r.id)
+                                      setConfirmingId(null)
+                                      setCancelError(null)
+                                    } catch (e) {
+                                      setCancelError((e as Error)?.message ?? 'Error al cancelar')
+                                      setConfirmingId(null)
+                                    }
+                                  }}
+                                  className="text-xs font-bold text-red-400 hover:text-red-600 transition-colors"
+                                >
+                                  Sí
+                                </button>
+                                <span style={{ color: 'var(--border)' }}>·</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmingId(null)}
+                                  className="text-xs font-bold transition-colors"
+                                  style={{ color: 'var(--text-muted)' }}
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingId(r.id)}
+                                className="text-xs font-bold transition-colors hover:opacity-70 whitespace-nowrap"
+                                style={{ color: '#f87171' }}
+                              >
+                                Cancelar
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

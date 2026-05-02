@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw new Error(error.message)
+    // Registra el acceso en la bitácora (fire-and-forget, no bloquea el login)
+    supabase.rpc('log_admin_login').then(null, () => null)
   }
 
   const signOut = async () => {

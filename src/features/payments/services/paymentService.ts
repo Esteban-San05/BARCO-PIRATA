@@ -41,17 +41,21 @@ export const paymentService = {
       .single()
 
     if (error) throw new Error(error.message)
+    if (!data) throw new Error('No se recibió respuesta al registrar el pago')
+
+    const row = data as Record<string, unknown>
+    if (!row.id || typeof row.id !== 'string') throw new Error('Respuesta de pago inválida: falta id')
 
     return {
-      id: (data as Record<string, unknown>).id as string,
-      reservationId: (data as Record<string, unknown>).reservation_id as string,
-      method: (data as Record<string, unknown>).method as Payment['method'],
-      amount: (data as Record<string, unknown>).amount as number,
-      status: (data as Record<string, unknown>).status as Payment['status'],
-      stripePaymentIntentId: (data as Record<string, unknown>).stripe_payment_intent_id as string | null,
-      receiptUrl: (data as Record<string, unknown>).receipt_url as string | null,
-      processedAt: (data as Record<string, unknown>).processed_at as string | null,
-      createdAt: (data as Record<string, unknown>).created_at as string,
+      id: row.id,
+      reservationId: row.reservation_id as string,
+      method: row.method as Payment['method'],
+      amount: (row.amount as number) ?? 0,
+      status: row.status as Payment['status'],
+      stripePaymentIntentId: (row.stripe_payment_intent_id as string | null) ?? null,
+      receiptUrl: (row.receipt_url as string | null) ?? null,
+      processedAt: (row.processed_at as string | null) ?? null,
+      createdAt: row.created_at as string,
     }
   },
 

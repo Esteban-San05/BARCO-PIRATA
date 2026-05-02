@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   FileSpreadsheet, FileText, TrendingUp, Users, DollarSign,
-  CalendarRange, Package, CreditCard, BarChart3,
+  CalendarRange, Package, CreditCard, BarChart3, XCircle,
 } from 'lucide-react'
 import { reportService } from '@features/reports/services/reportService'
 import { formatCurrency, formatDate } from '@utils/formatters'
@@ -111,17 +111,15 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       {/* Encabezado */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Analiza el desempeño de reservaciones, ocupación e ingresos.
-          </p>
-        </div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <p className="text-sm min-w-0" style={{ color: 'var(--text-muted)' }}>
+          Analiza el desempeño de reservaciones, ocupación e ingresos.
+        </p>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-2 w-full lg:w-auto">
           <PeriodPicker value={period} onChange={setPeriod} />
           {report && (
-            <>
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -138,7 +136,7 @@ export default function ReportsPage() {
               >
                 <FileText className="w-4 h-4" /> PDF
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -158,9 +156,9 @@ export default function ReportsPage() {
       {report && !isLoading && (
         <>
           {/* Banda de período activo */}
-          <div className="flex items-center gap-2 text-sm admin-text-muted">
-            <CalendarRange className="w-4 h-4 text-gold-500" />
-            <span>
+          <div className="flex items-start gap-2 text-sm admin-text-muted flex-wrap">
+            <CalendarRange className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+            <span className="min-w-0 break-words">
               Periodo analizado:&nbsp;
               <span className="font-semibold admin-text-body">
                 {formatDate(report.startDate)} → {formatDate(report.endDate)}
@@ -211,9 +209,25 @@ export default function ReportsPage() {
             />
           </div>
 
+          {/* KPI canceladas */}
+          {report.totalCancelled > 0 && (
+            <div
+              className="flex items-center gap-4 rounded-xl px-5 py-4 text-sm"
+              style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)' }}
+            >
+              <XCircle className="w-5 h-5 shrink-0" style={{ color: '#f87171' }} />
+              <div>
+                <span className="font-bold" style={{ color: '#f87171' }}>
+                  {report.totalCancelled} reservación{report.totalCancelled !== 1 ? 'es' : ''} cancelada{report.totalCancelled !== 1 ? 's' : ''}
+                </span>
+                <span className="ml-2" style={{ color: 'var(--text-muted)' }}>en el período — no se contabilizan en los ingresos</span>
+              </div>
+            </div>
+          )}
+
           {/* Gráfica principal — Ingresos por período */}
           <section
-            className="rounded-xl p-5"
+            className="rounded-xl p-4 sm:p-5"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
           >
             <header className="flex items-center justify-between mb-4">
@@ -235,7 +249,7 @@ export default function ReportsPage() {
           {/* Dos columnas: personas + paquetes */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <section
-              className="rounded-xl p-5"
+              className="rounded-xl p-4 sm:p-5"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
             >
               <header className="flex items-center gap-2 mb-4">
@@ -250,7 +264,7 @@ export default function ReportsPage() {
             </section>
 
             <section
-              className="rounded-xl p-5"
+              className="rounded-xl p-4 sm:p-5"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
             >
               <header className="flex items-center gap-2 mb-4">
@@ -273,7 +287,7 @@ export default function ReportsPage() {
           {/* Pago + detalle de paquetes */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <section
-              className="rounded-xl p-5"
+              className="rounded-xl p-4 sm:p-5"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
             >
               <header className="flex items-center gap-2 mb-4">
@@ -293,7 +307,7 @@ export default function ReportsPage() {
             </section>
 
             <section
-              className="rounded-xl p-5"
+              className="rounded-xl p-4 sm:p-5"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
             >
               <header className="flex items-center gap-2 mb-4">
@@ -331,6 +345,63 @@ export default function ReportsPage() {
               </div>
             </section>
           </div>
+
+          {/* Tabla de canceladas */}
+          {report.cancelledReservations.length > 0 && (
+            <section
+              className="rounded-xl overflow-hidden"
+              style={{ background: 'var(--bg-surface)', border: '1px solid rgba(248,113,113,0.3)', boxShadow: 'var(--shadow-card)' }}
+            >
+              <header className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>
+                <XCircle className="w-5 h-5" style={{ color: '#f87171' }} />
+                <h2 className="font-display font-bold" style={{ color: 'var(--text-title)' }}>
+                  Reservaciones canceladas
+                  <span className="ml-2 text-sm font-normal" style={{ color: '#f87171' }}>
+                    ({report.cancelledReservations.length})
+                  </span>
+                </h2>
+              </header>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead style={{ background: 'var(--bg-surface-alt)' }}>
+                    <tr>
+                      {['Fecha', 'Hora', 'Cliente', 'Teléfono', 'Personas', 'Paquete', 'Total'].map((h, i) => (
+                        <th
+                          key={h}
+                          className={`px-5 py-3 font-bold text-xs uppercase tracking-wider ${i > 2 ? 'hidden sm:table-cell' : ''} ${i > 4 ? 'text-right' : ''}`}
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.cancelledReservations.map((r) => (
+                      <tr
+                        key={r.id}
+                        style={{ borderTop: '1px solid var(--border)', opacity: 0.7 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'var(--bg-surface-alt)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <td className="px-5 py-3" style={{ color: 'var(--text-body)' }}>{formatDate(r.date)}</td>
+                        <td className="px-5 py-3 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{r.time}</td>
+                        <td className="px-5 py-3 font-medium" style={{ color: 'var(--text-body)' }}>{r.contactName}</td>
+                        <td className="hidden sm:table-cell px-5 py-3" style={{ color: 'var(--text-muted)' }}>{r.contactPhone}</td>
+                        <td className="hidden sm:table-cell px-5 py-3 text-center" style={{ color: 'var(--text-muted)' }}>{r.numberOfPeople}</td>
+                        <td className="hidden sm:table-cell px-5 py-3" style={{ color: 'var(--text-muted)' }}>
+                          {r.packageId.replace(/_/g, ' ')}
+                        </td>
+                        <td className="hidden sm:table-cell px-5 py-3 text-right line-through" style={{ color: 'var(--text-muted)' }}>
+                          {formatCurrency(r.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           {/* Tabla de serie */}
           <section

@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { format } from 'date-fns'
+import { addDays, format } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
 import { getReservationSchema, type ReservationFormValues } from '@utils/validators/reservation'
 import { useCreateReservation } from '@features/reservations/hooks/useReservations'
@@ -22,6 +22,28 @@ import { Card, CardHeader, CardTitle } from '@components/ui/Card'
 import { DateSlotPicker } from '@components/ui/DateSlotPicker'
 import { TimeSlotPicker } from '@components/ui/TimeSlotPicker'
 import { ClimaResumen } from '@components/ClimaResumen'
+
+/** Devuelve true si la fecha ISO está cerrada por día de semana o fecha específica */
+function isDateClosed(iso: string, closedWeekday: number, closedDates: string[]): boolean {
+  const d = new Date(iso + 'T00:00:00')
+  return d.getDay() === closedWeekday || closedDates.includes(iso)
+}
+
+/** Busca la próxima fecha disponible a partir de (pero sin incluir) `fromIso` */
+function getNextAvailableDate(
+  fromIso: string,
+  closedWeekday: number,
+  closedDates: string[],
+  maxDays: number,
+): string {
+  const base = new Date(fromIso + 'T00:00:00')
+  for (let i = 1; i <= maxDays; i++) {
+    const d = addDays(base, i)
+    const iso = format(d, 'yyyy-MM-dd')
+    if (!isDateClosed(iso, closedWeekday, closedDates)) return iso
+  }
+  return fromIso // fallback extremo
+}
 
 export default function ReservationPage() {
   const { t, i18n } = useTranslation()
@@ -60,12 +82,15 @@ export default function ReservationPage() {
     return today
   }, [searchParams])
 
+  const [todayClosed, setTodayClosed] = useState(false)
+
   const {
     register,
     handleSubmit,
     control,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<ReservationFormValues>({
     resolver: zodResolver(schema),
@@ -79,6 +104,25 @@ export default function ReservationPage() {
   useEffect(() => {
     setValue('date', initialDate)
   }, [initialDate, setValue])
+
+  // Cuando carga la configuración del negocio, verificar si el día actual
+  // está cerrado y avanzar automáticamente al próximo día disponible.
+  useEffect(() => {
+    if (!bizSettings) return
+    const cw = bizSettings.closedWeekday ?? 1
+    const cd = bizSettings.closedDates ?? []
+
+    const todayIso = format(new Date(), 'yyyy-MM-dd')
+    const todayIsActuallyClosed = isDateClosed(todayIso, cw, cd)
+    setTodayClosed(todayIsActuallyClosed)
+
+    // Solo auto-avanzar si la fecha actualmente seleccionada está cerrada
+    const currentDate = getValues('date') || todayIso
+    if (isDateClosed(currentDate, cw, cd)) {
+      const next = getNextAvailableDate(currentDate, cw, cd, MAX_ADVANCE_DAYS)
+      setValue('date', next)
+    }
+  }, [bizSettings, getValues, setValue])
 
   const watchedPkg    = watch('packageId') as PackageId | undefined
   const watchedPeople = watch('numberOfPeople') ?? 1
@@ -133,6 +177,17 @@ export default function ReservationPage() {
         {/* ─── Clima del día seleccionado ──────────────────────────── */}
         <ClimaResumen fecha={watchedDate || null} />
 
+        {/* ─── Aviso: hoy está cerrado ─────────────────────────────── */}
+        {todayClosed && (
+          <div className="panel-warning flex items-start gap-3 text-sm">
+            <Info className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+            <div>
+              <p className="font-bold mb-0.5">Hoy no hay servicio</p>
+              <p>El día de hoy está cerrado. Puedes reservar para los próximos días disponibles que se muestran a continuación.</p>
+            </div>
+          </div>
+        )}
+
         {/* ─── Paso 1: Fecha y horario ─────────────────────────────── */}
         <Card className="border border-navy-100">
           <CardHeader>
@@ -153,7 +208,7 @@ export default function ReservationPage() {
                   value={field.value || null}
                   onChange={(iso) => {
                     field.onChange(iso)
-                    setValue('time', '' as unknown as ReservationFormValues['time'])
+                    setValue('time', '') // Limpia la hora al cambiar fecha para forzar nueva selección
                   }}
                   closedWeekday={closedWeekday}
                   closedDates={closedDates}

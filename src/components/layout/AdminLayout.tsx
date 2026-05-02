@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock, LogOut, Menu, Shield, DatabaseBackup } from 'lucide-react'
 import { useAuth } from '@app/providers'
 import { COMPANY } from '@constants/index'
 import { AdminHeaderSlotProvider, useAdminHeaderSlot } from '@lib/AdminHeaderSlot'
@@ -10,6 +10,8 @@ const navItems = [
   { to: '/admin/reservaciones', icon: CalendarCheck,   label: 'Reservaciones', end: false },
   { to: '/admin/reportes',      icon: BarChart3,       label: 'Reportes',      end: false },
   { to: '/admin/horarios',      icon: Clock,           label: 'Horarios',      end: false },
+  { to: '/admin/bitacora',      icon: Shield,          label: 'Bitácora',      end: false },
+  { to: '/admin/respaldo',      icon: DatabaseBackup,  label: 'Respaldo',      end: false },
   { to: '/admin/ajustes',       icon: Settings,        label: 'Ajustes',       end: false },
 ]
 
@@ -19,6 +21,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/reportes':      'Reportes',
   '/admin/horarios':      'Horarios',
   '/admin/ajustes':       'Ajustes',
+  '/admin/bitacora':      'Bitácora de Accesos',
+  '/admin/respaldo':      'Respaldo y Recuperación',
 }
 
 export function AdminLayout() {
@@ -45,7 +49,7 @@ function AdminLayoutInner() {
   const initials = (user?.email ?? 'AD').slice(0, 2).toUpperCase()
 
   return (
-    <div className="admin-scope min-h-screen flex" style={{ background: 'var(--bg-app)' }}>
+    <div className="admin-scope min-h-screen flex overflow-x-hidden" style={{ background: 'var(--bg-app)' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -116,7 +120,7 @@ function AdminLayoutInner() {
       </aside>
 
       {/* Main area */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 lg:ml-64 flex flex-col min-h-screen">
         {/* Header */}
         <header
           className="h-16 flex items-center justify-between gap-4 px-6 lg:px-8 sticky top-0 z-30 border-b shrink-0"

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { Printer, CheckCircle, CreditCard, Banknote, ArrowLeft } from 'lucide-react'
-import { useReservation } from '@features/reservations/hooks/useReservations'
+import { Printer, CheckCircle, CreditCard, Banknote, ArrowLeft, XCircle } from 'lucide-react'
+import { useReservation, useCancelReservation } from '@features/reservations/hooks/useReservations'
 import { useProcessPayment } from '@features/payments/hooks/usePayments'
 import { formatCurrency, formatDate, formatTime } from '@utils/formatters'
 import { PACKAGES } from '@constants/index'
@@ -17,13 +17,17 @@ export default function SalePage() {
   const navigate = useNavigate()
   const { data: reservation, isLoading } = useReservation(reservationId ?? '')
   const { mutateAsync: processPayment, isPending } = useProcessPayment()
+  const { mutateAsync: cancelReservation, isPending: isCancelling } = useCancelReservation()
   const [paid, setPaid] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   if (isLoading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
   if (!reservation) return <div className="text-center py-20 text-navy-500">Reservación no encontrada.</div>
 
   const pkg = PACKAGES[reservation.packageId as PackageId]
-  const isPagada = reservation.status === 'pagada' || paid
+  const isPagada    = reservation.status === 'pagada' || paid
+  const isCancelada = reservation.status === 'cancelada'
 
   const handleConfirmCash = async () => {
     await processPayment({ reservationId: reservation.id, method: 'efectivo', adminConfirm: true })
@@ -41,7 +45,7 @@ export default function SalePage() {
         <ArrowLeft className="w-4 h-4" /> Volver
       </button>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto px-1">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-display font-bold text-navy-900">Comprobante de Venta</h1>
           {isPagada && (
@@ -113,12 +117,12 @@ export default function SalePage() {
         </Card>
 
         {/* Acción de cobro (solo si pendiente) */}
-        {!isPagada && (
+        {!isPagada && !isCancelada && (
           <Card className="mt-4 border border-navy-100">
             <p className="text-navy-600 text-sm mb-4">
               Confirma el pago en efectivo una vez que el cliente haya liquidado el monto total.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button variant="accent" onClick={handleConfirmCash} isLoading={isPending} className="flex-1">
                 <Banknote className="w-4 h-4" /> Confirmar Pago en Efectivo
               </Button>
@@ -130,6 +134,72 @@ export default function SalePage() {
                 <CreditCard className="w-4 h-4" /> Cobrar con Tarjeta
               </Button>
             </div>
+          </Card>
+        )}
+
+        {/* Error de cancelación */}
+        {cancelError && (
+          <Card className="mt-4 border border-red-200 bg-red-50">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-red-700">{cancelError}</p>
+              <button type="button" onClick={() => setCancelError(null)} className="text-red-400 hover:text-red-600 ml-3 font-bold">✕</button>
+            </div>
+          </Card>
+        )}
+
+        {/* Cancelar reservación */}
+        {!isPagada && !isCancelada && (
+          <Card className="mt-4 border border-red-100 bg-red-50">
+            {!confirmCancel ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-red-700">Cancelar reservación</p>
+                  <p className="text-xs text-red-500 mt-0.5">Esta acción quedará registrada en la bitácora.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmCancel(true)}
+                  className="border-red-300 text-red-600 hover:bg-red-100"
+                >
+                  <XCircle className="w-4 h-4" /> Cancelar
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-red-700">¿Confirmas la cancelación?</p>
+                <p className="text-xs text-red-500">
+                  Se marcará como cancelada y no podrá revertirse desde aquí.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmCancel(false)}
+                    className="flex-1"
+                  >
+                    No, volver
+                  </Button>
+                  <Button
+                    size="sm"
+                    isLoading={isCancelling}
+                    onClick={async () => {
+                      try {
+                        await cancelReservation(reservation.id)
+                        setConfirmCancel(false)
+                        navigate(-1)
+                      } catch (e) {
+                        setCancelError((e as Error)?.message ?? 'Error al cancelar')
+                        setConfirmCancel(false)
+                      }
+                    }}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
+                  >
+                    Sí, cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         )}
       </div>

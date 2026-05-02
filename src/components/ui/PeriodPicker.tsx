@@ -191,23 +191,23 @@ export function PeriodPicker({ value, onChange, className }: PeriodPickerProps) 
   }
 
   return (
-    <div ref={ref} className={clsx('relative', className)}>
+    <div ref={ref} className={clsx('relative w-full sm:w-auto', className)}>
       {/* Botón principal */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={clsx(
-          'inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all',
+          'w-full flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all',
           'admin-surface border admin-border hover:border-gold-400',
           'admin-text-body shadow-sm',
         )}
       >
-        <Calendar className="w-4 h-4 text-gold-500" />
-        <span className="font-semibold admin-text-title truncate max-w-[280px]">{label}</span>
-        <span className="admin-text-subtle text-xs uppercase tracking-wider border-l admin-border pl-2 ml-1">
+        <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
+        <span className="font-semibold admin-text-title truncate flex-1 text-left">{label}</span>
+        <span className="admin-text-subtle text-xs uppercase tracking-wider border-l admin-border pl-2 ml-1 shrink-0">
           {GRANULARITIES.find((g) => g.value === value.granularity)?.label}
         </span>
-        <ChevronDown className={clsx('w-4 h-4 admin-text-muted transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={clsx('w-4 h-4 admin-text-muted transition-transform shrink-0', open && 'rotate-180')} />
       </button>
 
       {/* Panel desplegable */}

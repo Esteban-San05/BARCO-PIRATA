@@ -15,7 +15,7 @@ import { es } from 'date-fns/locale'
 export default function DashboardPage() {
   const { selectedDate, setSelectedDate } = useReservationStore()
   const [calOpen, setCalOpen] = useState(false)
-  const { data, isLoading } = useReservationsByDate(selectedDate)
+  const { data, isLoading, isError } = useReservationsByDate(selectedDate)
 
   const reservations = data?.data ?? []
   const totalRevenue = reservations
@@ -40,11 +40,11 @@ export default function DashboardPage() {
         <button
           type="button"
           onClick={() => setCalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors shadow-sm max-w-full"
           style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)', color: 'var(--text-body)' }}
         >
-          <CalendarDays className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          <span className="capitalize">
+          <CalendarDays className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+          <span className="capitalize truncate">
             {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), "d 'de' MMMM yyyy", { locale: es })}
           </span>
         </button>
@@ -115,6 +115,10 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-12"><LoadingSpinner /></div>
+        ) : isError ? (
+          <p className="text-center py-12 text-sm" style={{ color: '#F87171' }}>
+            Error al cargar reservaciones. Intenta recargar la página.
+          </p>
         ) : reservations.length === 0 ? (
           <p className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
             No hay reservaciones para esta fecha.
@@ -124,13 +128,21 @@ export default function DashboardPage() {
             <table className="w-full text-sm">
               <thead style={{ background: 'var(--bg-surface-alt)' }}>
                 <tr>
-                  {['Nombre', 'Hora', 'Personas', 'Paquete', 'Total', 'Estado', 'Acción'].map((h) => (
+                  {[
+                    { label: 'Nombre',   cls: '' },
+                    { label: 'Hora',     cls: 'hidden sm:table-cell' },
+                    { label: 'Personas', cls: 'hidden sm:table-cell' },
+                    { label: 'Paquete',  cls: 'hidden md:table-cell' },
+                    { label: 'Total',    cls: '' },
+                    { label: 'Estado',   cls: '' },
+                    { label: 'Acción',   cls: '' },
+                  ].map(({ label, cls }) => (
                     <th
-                      key={h}
-                      className="px-5 py-3 text-left font-bold text-[11px] uppercase tracking-wider"
+                      key={label}
+                      className={`px-5 py-3 text-left font-bold text-[11px] uppercase tracking-wider ${cls}`}
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      {h}
+                      {label}
                     </th>
                   ))}
                 </tr>
@@ -145,9 +157,9 @@ export default function DashboardPage() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <td className="px-5 py-4 font-semibold" style={{ color: 'var(--text-title)' }}>{r.contactName}</td>
-                    <td className="px-5 py-4" style={{ color: 'var(--text-body)' }}>{r.time}</td>
-                    <td className="px-5 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
-                    <td className="px-5 py-4" style={{ color: 'var(--text-body)' }}>{r.packageId.replace(/_/g, ' ')}</td>
+                    <td className="hidden sm:table-cell px-5 py-4" style={{ color: 'var(--text-body)' }}>{r.time}</td>
+                    <td className="hidden sm:table-cell px-5 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
+                    <td className="hidden md:table-cell px-5 py-4" style={{ color: 'var(--text-body)' }}>{r.packageId.replace(/_/g, ' ')}</td>
                     <td className="px-5 py-4 font-bold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.total)}</td>
                     <td className="px-5 py-4"><StatusBadge status={r.status} /></td>
                     <td className="px-5 py-4">
