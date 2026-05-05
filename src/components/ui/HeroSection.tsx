@@ -303,19 +303,6 @@ export function HeroSection() {
         </svg>
       </button>
 
-      <div className="hero-slide-dots" role="tablist" aria-label="Navegación de fotos">
-        {HERO_PHOTOS.map((photo, i) => (
-          <button
-            key={photo.src}
-            role="tab"
-            aria-selected={i === currentSlide}
-            aria-label={`Ver foto ${i + 1}: ${photo.alt}`}
-            className={`hero-slide-dot${i === currentSlide ? ' active' : ''}`}
-            onClick={() => goTo(i)}
-          />
-        ))}
-      </div>
-
       {/* Progress bar */}
       {!paused && (
         <div className="hero-photo-progress" aria-hidden="true">
@@ -327,10 +314,24 @@ export function HeroSection() {
         </div>
       )}
 
-      {/* Scroll hint */}
-      <div className="hero-scroll-hint" aria-hidden="true">
-        <span>Explora</span>
-        <div className="hero-scroll-dot"/>
+      {/* Scroll hint + dots — single centered group */}
+      <div className="hero-bottom-center">
+        <div className="hero-scroll-hint" aria-hidden="true">
+          <span>Explora</span>
+          <div className="hero-scroll-dot"/>
+        </div>
+        <div className="hero-slide-dots" role="tablist" aria-label="Navegación de fotos">
+          {HERO_PHOTOS.map((photo, i) => (
+            <button
+              key={photo.src}
+              role="tab"
+              aria-selected={i === currentSlide}
+              aria-label={`Ver foto ${i + 1}: ${photo.alt}`}
+              className={`hero-slide-dot${i === currentSlide ? ' active' : ''}`}
+              onClick={() => goTo(i)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Trust bar */}

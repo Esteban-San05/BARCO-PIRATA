@@ -87,9 +87,9 @@ export const COMPANY = {
   name: 'Barco Pirata de Puerto Peñasco',
   shortName: 'Barco Pirata',
   location: 'Recinto Portuario, Puerto Peñasco, Sonora',
-  phone: '+52 638 000 0000',
-  email: 'contacto@barcopirata.mx',
-  schedule: 'Martes a Domingo, 9:00 AM – 5:00 PM',
+  phone: '638 112 3686',
+  email: 'reydelmar_2004@hotmail.com',
+  schedule: 'Jue – Dom: 11:00 AM – 2:00 PM y 4:00 PM – 6:00 PM',
 } as const
 
 // ─── Paginación ───────────────────────────────────────────────────────────

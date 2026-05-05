@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
-import { PACKAGES, DISCOUNT_MIN_PEOPLE, DISCOUNT_RATE } from '@constants/index'
+import { PACKAGES } from '@constants/index'
 import { formatCurrency } from '@utils/formatters'
 import { Button } from '@components/ui/Button'
 import { Card } from '@components/ui/Card'
 import { ImageCarousel } from '@components/ui/ImageCarousel'
 import { HeroSection } from '@components/ui/HeroSection'
-import { Users } from 'lucide-react'
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -56,18 +55,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Banner descuento grupal */}
-        <div className="mt-8 panel-gold flex items-start gap-4">
-          <Users className="w-8 h-8 text-gold-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-navy-900">
-              {t('home.packages.discountTitle', { rate: DISCOUNT_RATE * 100 })}
-            </p>
-            <p className="text-navy-700 text-sm mt-1">
-              {t('home.packages.discountText', { min: DISCOUNT_MIN_PEOPLE, rate: DISCOUNT_RATE * 100 })}
-            </p>
-          </div>
-        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════
