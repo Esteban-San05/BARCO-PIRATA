@@ -6,7 +6,7 @@ export function PublicFooter() {
   const { t } = useTranslation()
 
   return (
-    <footer className="bg-navy-900 text-navy-200 mt-auto">
+    <footer id="contacto" className="bg-navy-900 text-navy-200 mt-auto">
       <div className="container-app py-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Marca */}

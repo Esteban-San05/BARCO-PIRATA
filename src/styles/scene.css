@@ -1,0 +1,97 @@
+/* ============================================================
+   Scene Background — fondo animado reutilizable
+   Se usa en /reservar y otras páginas públicas
+   ============================================================ */
+
+/* Wrapper fijo que ocupa todo el viewport */
+.scene-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #020609;
+  isolation: isolate;
+}
+
+/* El contenido de la página flota sobre la escena */
+.scene-page {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+}
+
+/* ── Overrides de tarjetas sobre fondo oscuro ───────────────── */
+.scene-page .card {
+  background: rgba(8, 20, 42, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: #f3ead0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.scene-page h1,
+.scene-page h2,
+.scene-page h3 {
+  color: #ffe07a;
+}
+
+.scene-page p {
+  color: rgba(243, 234, 208, 0.75);
+}
+
+/* Labels e inputs */
+.scene-page label {
+  color: rgba(243, 234, 208, 0.9) !important;
+}
+
+.scene-page input,
+.scene-page select,
+.scene-page textarea {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f3ead0 !important;
+}
+
+.scene-page input::placeholder,
+.scene-page textarea::placeholder {
+  color: rgba(243, 234, 208, 0.35) !important;
+}
+
+.scene-page input:focus,
+.scene-page select:focus,
+.scene-page textarea:focus {
+  border-color: rgba(244, 197, 66, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.15) !important;
+  outline: none;
+}
+
+/* Hints y errores */
+.scene-page .text-navy-400,
+.scene-page .text-navy-500,
+.scene-page .text-navy-600 {
+  color: rgba(243, 234, 208, 0.55) !important;
+}
+
+.scene-page .text-navy-900 {
+  color: #f3ead0 !important;
+}
+
+/* Paneles de aviso sobre fondo oscuro */
+.scene-page .panel-warning {
+  background: rgba(180, 110, 0, 0.18);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fde68a;
+}
+
+.scene-page .panel-danger {
+  background: rgba(120, 20, 20, 0.25);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+/* Divisores */
+.scene-page .border-navy-100,
+.scene-page .border-navy-200 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
