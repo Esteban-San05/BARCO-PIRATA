@@ -429,5 +429,42 @@
       "question": "Do conditions look good?",
       "button": "Book for this day"
     }
+  },
+  "gallery": {
+    "pageTitle": "Treasures of the Sea",
+    "pageSubtitle": "Moments aboard the Black Pearl",
+    "pageLead": "Sunsets, legends and adventures captured on board. Explore photos and videos shared by our crew and guests.",
+    "crumb": "Gallery",
+    "reviewsTitle": "What the",
+    "reviewsAccent": "crew says",
+    "reviewsMeta": "reviews",
+    "filterAll": "All",
+    "filterSunsets": "Sunsets",
+    "filterOnBoard": "On Board",
+    "filterCrew": "Crew",
+    "filterFamilies": "Families",
+    "filterAerial": "Aerial",
+    "filterVideos": "Videos",
+    "searchPlaceholder": "Search…",
+    "featuredLabel": "★ Featured",
+    "featuredBadge": "Sunsets",
+    "allPhotosTitle": "The whole",
+    "allPhotosAccent": "crew",
+    "allPhotosMeta": "captures · sorted by date",
+    "loadMore": "Load more",
+    "videosTitle": "Featured",
+    "videosAccent": "videos",
+    "videosMeta": "clips · 4K when available",
+    "lightboxClose": "Close",
+    "lightboxPrev": "Previous",
+    "lightboxNext": "Next",
+    "noTitle": "Untitled",
+    "defaultMeta": "Black Pearl Gallery",
+    "stats": {
+      "photos": "Photos & videos",
+      "rating": "Average rating",
+      "reviews": "Verified reviews",
+      "years": "Years of adventures"
+    }
   }
 }

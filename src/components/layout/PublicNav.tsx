@@ -40,7 +40,9 @@ export function PublicNav() {
           <NavLink to="/clima" className={({ isActive }) => isActive ? 'active' : ''}>
             {t('header.weather')}
           </NavLink>
-          <a href="/#galeria">{t('header.gallery')}</a>
+          <NavLink to="/galeria" className={({ isActive }) => isActive ? 'active' : ''}>
+            {t('header.gallery')}
+          </NavLink>
           <a
             href="#contacto"
             onClick={(e) => {
@@ -87,6 +89,7 @@ export function PublicNav() {
             { to: '/', label: t('header.home'), end: true },
             { to: '/reservar', label: t('header.reserve'), end: false },
             { to: '/clima', label: t('header.weather'), end: false },
+            { to: '/galeria', label: t('header.gallery'), end: false },
           ].map(({ to, label, end }) => (
             <NavLink
               key={to}

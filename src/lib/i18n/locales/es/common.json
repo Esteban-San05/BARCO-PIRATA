@@ -429,5 +429,42 @@
       "question": "¿Las condiciones se ven bien?",
       "button": "Reservar para este día"
     }
+  },
+  "gallery": {
+    "pageTitle": "Tesoros del Mar",
+    "pageSubtitle": "Momentos a bordo de la Perla Negra",
+    "pageLead": "Atardeceres, leyendas y aventuras capturadas a bordo. Explora fotos y videos enviados por nuestra tripulación y huéspedes.",
+    "crumb": "Galería",
+    "reviewsTitle": "Lo que dice la",
+    "reviewsAccent": "tripulación",
+    "reviewsMeta": "reseñas",
+    "filterAll": "Todo",
+    "filterSunsets": "Atardeceres",
+    "filterOnBoard": "A bordo",
+    "filterCrew": "Tripulación",
+    "filterFamilies": "Familias",
+    "filterAerial": "Aéreas",
+    "filterVideos": "Videos",
+    "searchPlaceholder": "Buscar…",
+    "featuredLabel": "★ Destacada",
+    "featuredBadge": "Atardeceres",
+    "allPhotosTitle": "Toda la",
+    "allPhotosAccent": "tripulación",
+    "allPhotosMeta": "capturas · ordenadas por fecha",
+    "loadMore": "Ver más capturas",
+    "videosTitle": "Videos",
+    "videosAccent": "destacados",
+    "videosMeta": "piezas · 4K cuando es posible",
+    "lightboxClose": "Cerrar",
+    "lightboxPrev": "Anterior",
+    "lightboxNext": "Siguiente",
+    "noTitle": "Sin título",
+    "defaultMeta": "Galería Perla Negra",
+    "stats": {
+      "photos": "Fotos y videos",
+      "rating": "Calificación promedio",
+      "reviews": "Reseñas verificadas",
+      "years": "Años de aventuras"
+    }
   }
 }
