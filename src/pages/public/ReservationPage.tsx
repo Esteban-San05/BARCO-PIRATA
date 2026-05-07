@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { AlertCircle, Info, ChevronLeft, ChevronRight, Calendar, Clock, Shield, Check, Minus, Plus, Wind, Waves, Thermometer, Compass, User, Phone, Mail, MessageSquare, Anchor, Star, Sun } from 'lucide-react'
+import { AlertCircle, Info, ChevronLeft, ChevronRight, Calendar, Clock, Shield, Check, Minus, Plus, Wind, Waves, Thermometer, Compass, User, Phone, Mail, MessageSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { addDays, format, isToday as dfIsToday, isTomorrow, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -16,13 +16,20 @@ import { useBusinessSettings } from '@features/settings/hooks/useBusinessSetting
 import { useAvailability, availableInSlot } from '@features/availability/hooks/useAvailability'
 import { useMarinaForecast } from '@hooks/useMarinaForecast'
 import { supabase } from '@lib/supabase'
-import { receiptService } from '@features/payments/services/receiptService'
-import { PACKAGES, DISCOUNT_MIN_PEOPLE, DISCOUNT_RATE, BOAT_CAPACITY, MAX_ADVANCE_DAYS, TIME_SLOTS, COMPANY } from '@constants/index'
+import { PACKAGES, CHILDREN_PRICE, BOAT_CAPACITY, MAX_ADVANCE_DAYS, TIME_SLOTS, COMPANY } from '@constants/index'
 import type { PackageId } from '@constants/index'
 
 import '../../styles/reservation.css'
 
-type AddonId = 'costume' | 'photo' | 'champagne'
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+// adults y youth se distribuyen por paquete; children tienen paquete único fijo
+type AgeGroup = 'adults' | 'youth'
+type PkgCounts = Record<PackageId, Record<AgeGroup, number>>
+
+const PKG_IDS = Object.keys(PACKAGES) as PackageId[]
+
+const EMPTY_COUNTS = (): PkgCounts =>
+  Object.fromEntries(PKG_IDS.map(id => [id, { adults: 0, youth: 0 }])) as PkgCounts
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function isDateClosed(iso: string, closedWeekday: number, closedDates: string[]): boolean {
@@ -40,40 +47,47 @@ function getNextAvailableDate(fromIso: string, closedWeekday: number, closedDate
   return fromIso
 }
 
+const fmt = (n: number) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(n)
+
+// ─── Sub-componente: contador pequeño ────────────────────────────────────────
+function Counter({
+  value, onDec, onInc, disableDec, disableInc,
+}: {
+  value: number
+  onDec: () => void
+  onInc: () => void
+  disableDec: boolean
+  disableInc: boolean
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <button
+        type="button"
+        onClick={onDec}
+        disabled={disableDec}
+        className="w-7 h-7 rounded-full border border-navy-200 bg-white text-navy-700 flex items-center justify-center hover:bg-navy-900 hover:text-gold-300 hover:border-navy-900 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+      >
+        <Minus size={13} />
+      </button>
+      <span className="font-display font-bold text-[18px] w-5 text-center leading-none">{value}</span>
+      <button
+        type="button"
+        onClick={onInc}
+        disabled={disableInc}
+        className="w-7 h-7 rounded-full border border-navy-200 bg-white text-navy-700 flex items-center justify-center hover:bg-navy-900 hover:text-gold-300 hover:border-navy-900 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+      >
+        <Plus size={13} />
+      </button>
+    </div>
+  )
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function ReservationPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
 
-  const TOUR_META = useMemo(() => ({
-    SOLO_PASEO: {
-      tag: t('reservation.tours.SOLO_PASEO.tag'),
-      tagStyle: 'bg-navy-100 text-navy-700',
-      features: [t('reservation.tours.SOLO_PASEO.feature1'), t('reservation.tours.SOLO_PASEO.feature2'), t('reservation.tours.SOLO_PASEO.feature3')],
-      duration: t('reservation.tours.SOLO_PASEO.duration'),
-      icon: <Sun size={20} />,
-    },
-    SOLO_BEBIDAS: {
-      tag: t('reservation.tours.SOLO_BEBIDAS.tag'),
-      tagStyle: 'bg-pirate-700 text-gold-300',
-      features: [t('reservation.tours.SOLO_BEBIDAS.feature1'), t('reservation.tours.SOLO_BEBIDAS.feature2'), t('reservation.tours.SOLO_BEBIDAS.feature3')],
-      duration: t('reservation.tours.SOLO_BEBIDAS.duration'),
-      icon: <Waves size={20} />,
-    },
-    CON_COMIDA: {
-      tag: t('reservation.tours.CON_COMIDA.tag'),
-      tagStyle: 'bg-gold-400 text-navy-900',
-      features: [t('reservation.tours.CON_COMIDA.feature1'), t('reservation.tours.CON_COMIDA.feature2'), t('reservation.tours.CON_COMIDA.feature3')],
-      duration: t('reservation.tours.CON_COMIDA.duration'),
-      icon: <Star size={20} />,
-    },
-  }), [i18n.language])
-
-  const ADDONS = useMemo(() => [
-    { id: 'costume'   as AddonId, label: t('reservation.addons.costume.label'),   desc: t('reservation.addons.costume.desc'),   price: 80  },
-    { id: 'photo'     as AddonId, label: t('reservation.addons.photo.label'),     desc: t('reservation.addons.photo.desc'),     price: 150 },
-    { id: 'champagne' as AddonId, label: t('reservation.addons.champagne.label'), desc: t('reservation.addons.champagne.desc'), price: 420 },
-  ], [i18n.language])
   const [searchParams] = useSearchParams()
   const { mutateAsync: createReservation, isPending } = useCreateReservation()
   const setPendingReservation = useReservationStore((s) => s.setPendingReservation)
@@ -81,19 +95,22 @@ export default function ReservationPage() {
   const [serverError, setServerError] = useState<string | null>(null)
   const qc = useQueryClient()
 
-  // Passenger state
-  const [adults,   setAdults]   = useState(2)
+  // ── Estado de tripulación
+  // adults y youth: distribuidos por paquete
+  // children: paquete único fijo (agua, sodas y pizza $300)
+  // babies: gratis
+  const [counts, setCounts] = useState<PkgCounts>(EMPTY_COUNTS)
   const [children, setChildren] = useState(0)
-  const [babies,   setBabies]   = useState(0)
+  const [babies, setBabies] = useState(0)
 
-  // Addon state
-  const [selectedAddons, setSelectedAddons] = useState<Set<AddonId>>(new Set())
+  const inc = (pkg: PackageId, group: AgeGroup) =>
+    setCounts(prev => ({ ...prev, [pkg]: { ...prev[pkg], [group]: prev[pkg][group] + 1 } }))
 
-  // Date window (7-day grid)
+  const dec = (pkg: PackageId, group: AgeGroup) =>
+    setCounts(prev => ({ ...prev, [pkg]: { ...prev[pkg], [group]: Math.max(0, prev[pkg][group] - 1) } }))
+
+  // Date window
   const [windowStart, setWindowStart] = useState(() => startOfDay(new Date()))
-
-  // Promo code UI (display only)
-  const [promoCode, setPromoCode] = useState('')
 
   // Real-time settings sync
   useEffect(() => {
@@ -125,12 +142,11 @@ export default function ReservationPage() {
     formState: { errors },
   } = useForm<ReservationFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { serviceType: 'individual', numberOfPeople: adults, date: initialDate },
+    defaultValues: { serviceType: 'individual', numberOfPeople: 0, date: initialDate },
   })
 
   useEffect(() => { setValue('date', initialDate) }, [initialDate, setValue])
 
-  // Auto-advance if selected date is closed
   useEffect(() => {
     if (!bizSettings) return
     const cw = bizSettings.closedWeekday ?? 1
@@ -142,12 +158,43 @@ export default function ReservationPage() {
     }
   }, [bizSettings, getValues, setValue])
 
-  // Sync numberOfPeople → form field
-  useEffect(() => {
-    setValue('numberOfPeople', Math.max(1, adults + children))
-  }, [adults, children, setValue])
+  // ── Totales derivados ─────────────────────────────────────────────────────
+  const totalAdults   = PKG_IDS.reduce((s, id) => s + counts[id].adults, 0)
+  const totalYouth    = PKG_IDS.reduce((s, id) => s + counts[id].youth,  0)
+  const numberOfPeople  = totalAdults + totalYouth + children  // sin bebés (capacidad)
+  const totalPassengers = numberOfPeople + babies
 
-  const watchedPkg  = watch('packageId') as PackageId | undefined
+  // Paquete dominante derivado (el que tiene más personas; fallback al primero con alguien)
+  const dominantPkg: PackageId = useMemo(() =>
+    PKG_IDS.reduce((best, id) => {
+      const n    = counts[id].adults + counts[id].youth
+      const bestN = counts[best].adults + counts[best].youth
+      return n > bestN ? id : best
+    }, PKG_IDS[0])
+  , [counts])
+
+  // Sync form fields
+  useEffect(() => {
+    setValue('numberOfPeople', numberOfPeople)
+  }, [numberOfPeople, setValue])
+
+  useEffect(() => {
+    setValue('packageId', dominantPkg as any)
+  }, [dominantPkg, setValue])
+
+  // Pricing por paquete (adults + youth) + niños tarifa fija
+  const pkgCosts = useMemo(() =>
+    Object.fromEntries(PKG_IDS.map(id => {
+      const p = PACKAGES[id]
+      const cost = p.adultPrice * counts[id].adults
+               + p.youthPrice  * counts[id].youth
+      return [id, cost]
+    })) as Record<PackageId, number>
+  , [counts])
+
+  const childrenCost = children * CHILDREN_PRICE
+  const total = Object.values(pkgCosts).reduce((s, c) => s + c, 0) + childrenCost
+
   const watchedDate = watch('date')
   const watchedTime = watch('time') ?? null
 
@@ -155,68 +202,55 @@ export default function ReservationPage() {
   const closedDates     = bizSettings?.closedDates     ?? []
   const activeTimeSlots = bizSettings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time)
 
-  // Weather/conditions for selected date+time
   const { datos: condData } = useMarinaForecast(watchedDate || null) as any
-
-  // Availability for selected date
   const { data: availability, isLoading: availLoading } = useAvailability(watchedDate)
 
-  // 7-day grid
   const days = useMemo(() =>
     Array.from({ length: 7 }, (_, i) => addDays(windowStart, i)),
     [windowStart]
   )
 
-  // Pricing
-  const pkg = watchedPkg ? PACKAGES[watchedPkg] : null
-  const ppp = pkg?.pricePerPerson ?? 0
-  const adultsCost    = ppp * adults
-  const childrenCost  = Math.round(ppp * 0.5 * children)
-  const addonsTotal   = [...selectedAddons].reduce((sum, id) => {
-    const a = ADDONS.find(a => a.id === id)
-    return sum + (a?.price ?? 0)
-  }, 0)
-  const numberOfPeople   = adults + children
-  const peopleSubtotal   = adultsCost + childrenCost
-  const hasGroupDiscount = numberOfPeople >= DISCOUNT_MIN_PEOPLE
-  const discount         = hasGroupDiscount ? Math.round(peopleSubtotal * DISCOUNT_RATE) : 0
-  const total            = peopleSubtotal + addonsTotal - discount
+  // Active step
+  const hasPassengers = numberOfPeople > 0
+  const activeStep = !hasPassengers ? 1 : (!watchedDate || !watchedTime) ? 2 : (!watch('contactName')) ? 3 : 4
 
-  // Active step (for step rail)
-  const activeStep = !watchedPkg ? 1 : (!watchedDate || !watchedTime) ? 2 : (!watch('contactName')) ? 3 : 4
-
-  const toggleAddon = (id: AddonId) => {
-    setSelectedAddons(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
+  const steps = [
+    { n: 1, label: t('reservation.steps.crew') },
+    { n: 2, label: t('reservation.steps.datetime') },
+    { n: 3, label: t('reservation.steps.contact') },
+  ]
 
   const onSubmit = async (values: ReservationFormValues) => {
     setServerError(null)
-    const addonStr = [...selectedAddons]
-      .map(id => ADDONS.find(a => a.id === id)?.label)
-      .filter(Boolean).join(', ')
-    const notesWithAddons = [values.notes, addonStr].filter(Boolean).join(' | ')
+    if (totalAdults === 0) {
+      setServerError('Se requiere al menos 1 adulto para realizar la reservación y abordar el barco.')
+      return
+    }
     try {
       const reservation = await createReservation({
         ...values,
-        serviceType: numberOfPeople >= DISCOUNT_MIN_PEOPLE ? 'grupal' : 'individual',
-        notes: notesWithAddons || undefined,
+        packageId:    dominantPkg,
+        serviceType:  numberOfPeople >= 10 ? 'grupal' : 'individual',
+        notes:        values.notes || undefined,
+        adults:       totalAdults,
+        youth:        totalYouth,
+        children,
+        babies,
+        adultsCost:   PKG_IDS.reduce((s, id) => s + PACKAGES[id].adultPrice * counts[id].adults, 0),
+        youthCost:    PKG_IDS.reduce((s, id) => s + PACKAGES[id].youthPrice  * counts[id].youth,  0),
+        childrenCost,
       })
       setPendingReservation(reservation)
-      receiptService.send(reservation.id, values.contactEmail).catch(console.warn)
       navigate('/reservar/confirmacion')
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('reservation.errors.generic')
-      if (/capacidad excedida/i.test(msg))          setServerError(t('reservation.errors.capacity'))
-      else if (/horario .* no disponible/i.test(msg)) setServerError(t('reservation.errors.invalidSlot'))
+      if (/capacidad excedida/i.test(msg))             setServerError(t('reservation.errors.capacity'))
+      else if (/horario .* no disponible/i.test(msg))  setServerError(t('reservation.errors.invalidSlot'))
       else setServerError(msg)
     }
   }
 
-  // ── Visible time slots ────────────────────────────────────────────────────
+  // Visible time slots
   const KNOWN_SLOTS = Object.fromEntries(TIME_SLOTS.map(s => [s.time, s]))
   const visibleSlots = [...activeTimeSlots].sort().map(ts => {
     if (KNOWN_SLOTS[ts]) return KNOWN_SLOTS[ts]
@@ -227,7 +261,7 @@ export default function ReservationPage() {
   const todayIso = format(new Date(), 'yyyy-MM-dd')
   const nowHHMM  = format(new Date(), 'HH:mm')
 
-  // ── Conditions data ───────────────────────────────────────────────────────
+  // Conditions
   const condViento = condData?.clima?.velocidadViento ?? null
   const condOlas   = condData?.marina?.alturaOlas ?? null
   const condTMax   = condData?.clima?.temperaturaMax ?? null
@@ -235,11 +269,10 @@ export default function ReservationPage() {
   const condDir    = condData?.marina?.direccionOlasGrados ?? null
   const condFav    = condData ? (condViento === null || condViento <= 40) && (condOlas === null || condOlas <= 2) : true
 
-  const steps = [
-    { n: 1, label: t('reservation.steps.tour') },
-    { n: 2, label: t('reservation.steps.datetime') },
-    { n: 3, label: t('reservation.steps.crew') },
-    { n: 4, label: t('reservation.steps.contact') },
+  // Solo adults y youth se distribuyen por paquete
+  const AGE_GROUPS: { key: AgeGroup; label: string; desc: string; priceKey: 'adultPrice' | 'youthPrice' }[] = [
+    { key: 'adults', label: 'Adultos',      desc: '18 años en adelante', priceKey: 'adultPrice' },
+    { key: 'youth',  label: 'Adolescentes', desc: '12 a 17 años',        priceKey: 'youthPrice' },
   ]
 
   return (
@@ -268,7 +301,6 @@ export default function ReservationPage() {
 
       {/* ── Main form ──────────────────────────────────────────────────────── */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        {/* Hidden inputs so react-hook-form valida los campos manejados por state */}
         <input type="hidden" {...register('packageId')} />
         <input type="hidden" {...register('numberOfPeople', { valueAsNumber: true })} />
         <input type="hidden" {...register('serviceType')} />
@@ -306,70 +338,155 @@ export default function ReservationPage() {
               })}
             </div>
 
-            {/* ── Card I: Tour picker ─────────────────────────────────────── */}
+            {/* ── Card I: Tripulación + Paquete ───────────────────────────── */}
             <div className="bg-white border border-navy-100 rounded-2xl shadow-card overflow-hidden mb-4">
               <div className="flex items-center justify-between px-6 py-4 border-b border-dashed border-navy-100">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-navy-900 text-gold-300 flex items-center justify-center font-display font-bold text-sm">I</div>
-                  <h2 className="text-[17px] font-bold m-0">{t('reservation.card1.title')}</h2>
+                  <h2 className="text-[17px] font-bold m-0">Tripulación y paquetes</h2>
                 </div>
-                <span className="text-[13px] text-navy-400 font-medium">{t('reservation.card1.subtitle')}</span>
+                <span className="text-[13px] text-navy-400 font-medium">
+                  {totalPassengers > 0
+                    ? `${totalPassengers} ${totalPassengers === 1 ? 'persona' : 'personas'} · ${fmt(total)}`
+                    : 'Elige quién viene y qué incluye'}
+                </span>
               </div>
-              <div className="p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {Object.entries(PACKAGES).map(([key, pkg]) => {
-                    const meta = TOUR_META[key as keyof typeof TOUR_META]
-                    if (!meta) return null
-                    const isSel = watchedPkg === key
-                    return (
-                      <div
-                        key={key}
-                        role="radio"
-                        aria-checked={isSel}
-                        tabIndex={0}
-                        onClick={() => setValue('packageId', key as PackageId, { shouldValidate: true })}
-                        onKeyDown={(e) => e.key === 'Enter' && setValue('packageId', key as PackageId, { shouldValidate: true })}
-                        className={clsx('rv-tour cursor-pointer', isSel && 'rv-tour-sel')}
-                      >
-                        {/* Tag badge */}
-                        {!isSel && (
-                          <span className={clsx('absolute top-3 right-3 text-[10.5px] font-bold uppercase tracking-wider px-2 py-1 rounded-md', meta.tagStyle)}>
-                            {meta.tag}
-                          </span>
-                        )}
-                        {/* Checkmark when selected */}
-                        {isSel && (
-                          <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-gold-400 text-navy-900 flex items-center justify-center">
-                            <Check size={12} strokeWidth={3} />
-                          </span>
-                        )}
 
-                        <div className="w-11 h-11 rounded-xl bg-navy-900 text-gold-400 flex items-center justify-center mb-3">
-                          {meta.icon}
-                        </div>
-                        <h3 className="font-display font-bold text-[15px] tracking-tight mb-1 m-0">{t(`packages.${pkg.id}.label`)}</h3>
-                        <p className="text-[12px] text-navy-400 mb-3">{meta.duration}</p>
-                        <ul className="list-none p-0 m-0 mb-3 flex flex-col gap-1.5">
-                          {meta.features.map(f => (
-                            <li key={f} className="text-[12.5px] flex gap-2 items-start text-navy-700">
-                              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mt-[6px] flex-shrink-0" />
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="flex items-baseline gap-1.5 pt-3 border-t border-dashed border-navy-100">
-                          <span className="font-display font-bold text-[22px] text-navy-900">${pkg.pricePerPerson}</span>
-                          <span className="text-[12px] text-navy-400">{t('reservation.card1.perPerson')}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
+              <div className="p-4 sm:p-5">
+                {/* Intro explicativo */}
+                <p className="text-[13px] text-navy-500 mb-4">
+                  Indica <b className="text-navy-700">cuántas personas</b> quieren cada paquete. Puedes mezclar paquetes en el mismo paseo.
+                </p>
+
+                {/* Tabla paquete × grupo de edad */}
+                <div className="overflow-x-auto -mx-1">
+                  <table className="w-full min-w-[480px] border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="text-left pb-3 pl-1 text-[12px] font-semibold text-navy-400 uppercase tracking-wider w-32">
+                          Grupo
+                        </th>
+                        {PKG_IDS.map(id => {
+                          const p = PACKAGES[id]
+                          return (
+                            <th key={id} className="pb-3 px-2 text-center">
+                              <div className="inline-flex flex-col items-center gap-0.5">
+                                <span className="text-[18px]">{p.icon}</span>
+                                <span className="text-[12px] font-bold text-navy-800 leading-tight">{p.label}</span>
+                              </div>
+                            </th>
+                          )
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {AGE_GROUPS.map(({ key, label, desc, priceKey }) => (
+                        <tr key={key} className="border-t border-navy-50">
+                          <td className="py-3 pl-1 pr-2">
+                            <p className="font-semibold text-[13px] text-navy-800 m-0 leading-tight">{label}</p>
+                            <p className="text-[11px] text-navy-400 m-0">{desc}</p>
+                          </td>
+                          {PKG_IDS.map(id => {
+                            const price = PACKAGES[id][priceKey]
+                            const val   = counts[id][key]
+                            const atCapacity = numberOfPeople >= BOAT_CAPACITY
+                            return (
+                              <td key={id} className="py-3 px-2">
+                                <div className="flex flex-col items-center gap-1">
+                                  <Counter
+                                    value={val}
+                                    onDec={() => dec(id, key)}
+                                    onInc={() => inc(id, key)}
+                                    disableDec={val <= 0}
+                                    disableInc={atCapacity && val === 0}
+                                  />
+                                  <span className="text-[11px] text-navy-400 font-medium">${price} c/u</span>
+                                </div>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+
+                      {/* Fila niños — paquete único fijo */}
+                      <tr className="border-t border-navy-50 bg-navy-50/30">
+                        <td className="py-3 pl-1 pr-2">
+                          <p className="font-semibold text-[13px] text-navy-800 m-0 leading-tight">Niños</p>
+                          <p className="text-[11px] text-navy-400 m-0">3 a 11 años</p>
+                        </td>
+                        {/* Primera columna: contador centrado */}
+                        <td className="py-3 px-2 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <Counter
+                              value={children}
+                              onDec={() => setChildren(v => Math.max(0, v - 1))}
+                              onInc={() => setChildren(v => v + 1)}
+                              disableDec={children <= 0}
+                              disableInc={numberOfPeople >= BOAT_CAPACITY}
+                            />
+                            <span className="text-[11px] text-navy-400 font-medium">${CHILDREN_PRICE} c/u</span>
+                          </div>
+                        </td>
+                        {/* Segunda columna: descripción del paquete único */}
+                        <td className="py-3 px-2">
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-navy-500 bg-white border border-navy-100 rounded-lg px-2.5 py-1.5 leading-tight">
+                            🍕 agua, sodas y pizza
+                          </span>
+                        </td>
+                      </tr>
+
+                      {/* Fila bebés */}
+                      <tr className="border-t border-navy-50 bg-green-50/30">
+                        <td className="py-3 pl-1 pr-2">
+                          <p className="font-semibold text-[13px] text-navy-800 m-0 leading-tight">Bebés</p>
+                          <p className="text-[11px] text-navy-400 m-0">1 a 3 años · sin asiento</p>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <Counter
+                              value={babies}
+                              onDec={() => setBabies(v => Math.max(0, v - 1))}
+                              onInc={() => setBabies(v => v + 1)}
+                              disableDec={babies <= 0}
+                              disableInc={babies >= 10}
+                            />
+                            <span className="text-[11px] font-semibold text-green-600">Gratis</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-navy-500 bg-white border border-navy-100 rounded-lg px-2.5 py-1.5 leading-tight">
+                            🍼 sin asiento asignado
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                {errors.packageId && <p className="error-message mt-2">{errors.packageId.message}</p>}
+
+                {/* Advertencia adultos */}
+                <div className={clsx(
+                  'flex items-start gap-2.5 rounded-xl px-4 py-3 text-[13px] transition-colors mt-4',
+                  totalAdults === 0
+                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                    : 'bg-green-50 border border-green-100 text-green-700',
+                )}>
+                  {totalAdults === 0
+                    ? <AlertCircle size={15} className="flex-shrink-0 mt-0.5 text-amber-500" />
+                    : <Check size={15} className="flex-shrink-0 mt-0.5 text-green-600" />
+                  }
+                  <span>
+                    {totalAdults === 0
+                      ? <><b>Se requiere al menos 1 adulto</b> para poder realizar la reservación y abordar el barco.</>
+                      : <><b>{totalAdults} adulto{totalAdults !== 1 ? 's' : ''}</b> incluido{totalAdults !== 1 ? 's' : ''} en la tripulación.</>
+                    }
+                  </span>
+                </div>
+
+                {errors.numberOfPeople && <p className="error-message mt-2">{errors.numberOfPeople.message}</p>}
               </div>
             </div>
 
-            {/* ── Card II: Date + Time ────────────────────────────────────── */}
+            {/* ── Card II: Fecha + Hora ────────────────────────────────────── */}
             <div className="bg-white border border-navy-100 rounded-2xl shadow-card overflow-hidden mb-4">
               <div className="flex items-center justify-between px-6 py-4 border-b border-dashed border-navy-100">
                 <div className="flex items-center gap-3">
@@ -546,101 +663,15 @@ export default function ReservationPage() {
               </div>
             )}
 
-            {/* ── Card III: Passengers ────────────────────────────────────── */}
+            {/* ── Card III: Datos de contacto ──────────────────────────────── */}
             <div className="bg-white border border-navy-100 rounded-2xl shadow-card overflow-hidden mb-4">
               <div className="flex items-center justify-between px-6 py-4 border-b border-dashed border-navy-100">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-navy-900 text-gold-300 flex items-center justify-center font-display font-bold text-sm">III</div>
-                  <h2 className="text-[17px] font-bold m-0">{t('reservation.card3.title')}</h2>
-                </div>
-                <span className="text-[13px] text-navy-400 font-medium">
-                  {numberOfPeople} {numberOfPeople === 1 ? t('reservation.passengers.person') : t('reservation.passengers.people')}
-                  {pkg && ` · ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(peopleSubtotal)} MXN`}
-                </span>
-              </div>
-              <div className="p-5">
-                {/* Counters */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-                  {[
-                    { label: t('reservation.passengers.adultsLabel'),   desc: t('reservation.passengers.adultsDesc'),   val: adults,   set: setAdults,   min: 1, maxDisabled: numberOfPeople >= BOAT_CAPACITY, priceTag: pkg ? t('reservation.passengers.adultsPrice', { price: ppp }) : '—' },
-                    { label: t('reservation.passengers.childrenLabel'), desc: t('reservation.passengers.childrenDesc'), val: children, set: setChildren, min: 0, maxDisabled: numberOfPeople >= BOAT_CAPACITY, priceTag: pkg ? t('reservation.passengers.childrenPrice', { price: Math.round(ppp * 0.5) }) : '—' },
-                    { label: t('reservation.passengers.babiesLabel'),   desc: t('reservation.passengers.babiesDesc'),   val: babies,   set: setBabies,   min: 0, maxDisabled: babies >= 10,                   priceTag: t('reservation.passengers.babiesFree') },
-                  ].map(({ label, desc, val, set, min, maxDisabled, priceTag }) => (
-                    <div key={label} className="border border-navy-100 rounded-xl p-4 bg-white flex flex-col gap-1">
-                      <p className="font-bold text-[14px] m-0">{label}</p>
-                      <p className="text-[12px] text-navy-400 m-0 mb-2">{desc}</p>
-                      <div className="flex items-center gap-3">
-                        <button type="button"
-                          disabled={val <= min}
-                          onClick={() => set(v => Math.max(min, v - 1))}
-                          className="w-9 h-9 rounded-full border border-navy-200 bg-white text-navy-800 text-lg font-semibold flex items-center justify-center hover:bg-navy-900 hover:text-gold-300 hover:border-navy-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                          <Minus size={16} />
-                        </button>
-                        <span className="font-display font-bold text-[22px] min-w-[24px] text-center">{val}</span>
-                        <button type="button"
-                          disabled={maxDisabled}
-                          onClick={() => set(v => v + 1)}
-                          className="w-9 h-9 rounded-full border border-navy-200 bg-white text-navy-800 text-lg font-semibold flex items-center justify-center hover:bg-navy-900 hover:text-gold-300 hover:border-navy-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                          <Plus size={16} />
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-navy-400 mt-auto pt-2 border-t border-dashed border-navy-100 m-0">
-                        <b className="text-navy-700 font-bold">{priceTag.split('·')[0]}</b>
-                        {priceTag.includes('·') && '· ' + priceTag.split('·')[1]}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {errors.numberOfPeople && <p className="error-message mb-3">{errors.numberOfPeople.message}</p>}
-
-                {/* Addons */}
-                <p className="font-bold text-[14px] tracking-wide mb-2">{t('reservation.extras')}</p>
-                <div className="flex flex-col gap-2">
-                  {ADDONS.map(addon => {
-                    const checked = selectedAddons.has(addon.id)
-                    return (
-                      <label
-                        key={addon.id}
-                        onClick={() => toggleAddon(addon.id)}
-                        className={clsx(
-                          'flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-all',
-                          checked
-                            ? 'border-gold-400 bg-gradient-to-b from-amber-50 to-white'
-                            : 'border-navy-100 hover:border-gold-400 bg-white',
-                        )}
-                      >
-                        <span className={clsx(
-                          'w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all',
-                          checked ? 'bg-gold-400 border-gold-400 text-navy-900' : 'border-navy-200',
-                        )}>
-                          {checked && <Check size={14} strokeWidth={3} />}
-                        </span>
-                        <span className="w-10 h-10 rounded-lg bg-navy-50 flex items-center justify-center flex-shrink-0 text-navy-700">
-                          <Anchor size={18} />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block font-bold text-[14px]">{addon.label}</span>
-                          <span className="block text-[12px] text-navy-400">{addon.desc}</span>
-                        </span>
-                        <span className="font-display font-bold text-[15px] text-navy-900 whitespace-nowrap">+${addon.price}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* ── Card IV: Contact info ───────────────────────────────────── */}
-            <div className="bg-white border border-navy-100 rounded-2xl shadow-card overflow-hidden mb-4">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-dashed border-navy-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-navy-900 text-gold-300 flex items-center justify-center font-display font-bold text-sm">IV</div>
                   <h2 className="text-[17px] font-bold m-0">{t('reservation.card4.title')}</h2>
                 </div>
               </div>
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Name */}
                 <div className="sm:col-span-2">
                   <label className="label flex items-center gap-1.5"><User size={14} />{t('reservation.contact.name')}</label>
                   <input
@@ -650,7 +681,6 @@ export default function ReservationPage() {
                   />
                   {errors.contactName && <p className="error-message">{errors.contactName.message}</p>}
                 </div>
-                {/* Phone */}
                 <div>
                   <label className="label flex items-center gap-1.5"><Phone size={14} />{t('reservation.contact.phone')}</label>
                   <input
@@ -660,7 +690,6 @@ export default function ReservationPage() {
                   />
                   {errors.contactPhone && <p className="error-message">{errors.contactPhone.message}</p>}
                 </div>
-                {/* Email */}
                 <div>
                   <label className="label flex items-center gap-1.5"><Mail size={14} />{t('reservation.contact.email')}</label>
                   <input
@@ -671,7 +700,6 @@ export default function ReservationPage() {
                   />
                   {errors.contactEmail && <p className="error-message">{errors.contactEmail.message}</p>}
                 </div>
-                {/* Notes */}
                 <div className="sm:col-span-2">
                   <label className="label flex items-center gap-1.5"><MessageSquare size={14} />{t('reservation.notes')}</label>
                   <textarea
@@ -685,7 +713,7 @@ export default function ReservationPage() {
               </div>
             </div>
 
-            {/* ── Bottom info ─────────────────────────────────────────────── */}
+            {/* ── Info ────────────────────────────────────────────────────── */}
             <div className="border border-navy-100 rounded-2xl bg-white p-5 flex flex-col gap-3 text-[13px] text-navy-500">
               <div className="flex items-start gap-3">
                 <Shield size={16} className="text-gold-500 flex-shrink-0 mt-0.5" />
@@ -718,99 +746,78 @@ export default function ReservationPage() {
                 <div className="absolute right-0 bottom-0 w-32 h-32 pointer-events-none"
                      style={{ background: 'radial-gradient(circle, rgba(244,197,66,.15), transparent 70%)' }} />
                 <p className="text-[11px] font-bold uppercase tracking-[.2em] text-gold-300 mb-1">{t('reservation.sum.yourReservation')}</p>
-                <h3 className="font-display font-bold text-[18px] text-bone m-0" style={{ color: '#f3ead0' }}>
-                  {pkg?.label ?? t('reservation.sum.selectTour')}
+                <h3 className="font-display font-bold text-[18px] m-0" style={{ color: '#f3ead0' }}>
+                  {totalPassengers > 0 ? `${totalPassengers} personas · ${fmt(total)}` : t('reservation.sum.selectTour')}
                 </h3>
               </div>
 
               <div className="p-5">
-                {/* Info rows */}
-                <div className="space-y-0">
-                  {[
-                    {
-                      k: t('reservation.sum.date'),
-                      v: watchedDate ? format(new Date(watchedDate + 'T12:00:00'), "EEE d MMMM", { locale: i18n.language === 'es' ? es : undefined }) : '—',
-                      sub: watchedTime ? `${watchedTime} · ${pkg ? TOUR_META[watchedPkg!]?.duration : '—'}` : '—',
-                    },
-                    {
-                      k: t('reservation.sum.crew'),
-                      v: `${numberOfPeople} ${numberOfPeople === 1 ? t('reservation.passengers.person') : t('reservation.passengers.people')}`,
-                      sub: `${adults} ${adults === 1 ? t('reservation.passengers.adult') : t('reservation.passengers.adults')}${children > 0 ? ` · ${children} ${children === 1 ? t('reservation.passengers.child') : t('reservation.passengers.children')}` : ''}${babies > 0 ? ` · ${babies} ${t('reservation.passengers.baby')}${babies > 1 ? 's' : ''}` : ''}`,
-                    },
-                    {
-                      k: t('reservation.sum.duration'),
-                      v: pkg ? TOUR_META[watchedPkg!]?.duration ?? '—' : '—',
-                      sub: t('reservation.sum.dock'),
-                    },
-                  ].map(row => (
-                    <div key={row.k} className="flex justify-between items-start gap-4 py-2.5 border-b border-dashed border-navy-100 last:border-0 text-[13.5px]">
-                      <span className="text-navy-400 font-medium">{row.k}</span>
-                      <div className="text-right">
-                        <span className="font-semibold text-navy-800 block">{row.v}</span>
-                        <span className="text-[11.5px] text-navy-400 block mt-0.5">{row.sub}</span>
-                      </div>
+                {/* Fecha y hora */}
+                <div className="space-y-0 mb-4">
+                  <div className="flex justify-between items-start gap-4 py-2.5 border-b border-dashed border-navy-100 text-[13.5px]">
+                    <span className="text-navy-400 font-medium">{t('reservation.sum.date')}</span>
+                    <div className="text-right">
+                      <span className="font-semibold text-navy-800 block">
+                        {watchedDate ? format(new Date(watchedDate + 'T12:00:00'), "EEE d MMMM", { locale: i18n.language === 'es' ? es : undefined }) : '—'}
+                      </span>
+                      <span className="text-[11.5px] text-navy-400 block mt-0.5">{watchedTime || '—'}</span>
                     </div>
-                  ))}
+                  </div>
+                  {babies > 0 && (
+                    <div className="flex justify-between items-center py-2.5 border-b border-dashed border-navy-100 text-[13.5px]">
+                      <span className="text-navy-400 font-medium">{babies} bebé{babies !== 1 ? 's' : ''}</span>
+                      <span className="text-green-700 font-semibold text-sm">Gratis</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Price lines */}
-                {pkg && (
-                  <div className="mt-4 space-y-1.5 text-[13px]">
-                    {adults > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-navy-400">{t('reservation.sum.adultsX', { n: adults })}</span>
-                        <span className="font-semibold">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(adultsCost)}</span>
-                      </div>
-                    )}
-                    {children > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-navy-400">{t('reservation.sum.childrenX', { n: children })}</span>
-                        <span className="font-semibold">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(childrenCost)}</span>
-                      </div>
-                    )}
-                    {[...selectedAddons].map(id => {
-                      const a = ADDONS.find(x => x.id === id)!
+                {/* Desglose por paquete */}
+                {totalPassengers > 0 && (
+                  <div className="space-y-3 text-[13px]">
+                    {PKG_IDS.map(id => {
+                      const p = PACKAGES[id]
+                      const c = counts[id]
+                      const pkgTotal = c.adults * p.adultPrice + c.youth * p.youthPrice
+                      if (pkgTotal === 0) return null
                       return (
-                        <div key={id} className="flex justify-between">
-                          <span className="text-navy-400">{a.label}</span>
-                          <span className="font-semibold">${a.price}</span>
+                        <div key={id} className="rounded-xl border border-navy-100 overflow-hidden">
+                          <div className="flex items-center gap-2 px-3 py-2 bg-navy-50 border-b border-navy-100">
+                            <span>{p.icon}</span>
+                            <span className="font-semibold text-navy-800 text-[12.5px]">{p.label}</span>
+                            <span className="ml-auto font-bold text-navy-900">{fmt(pkgTotal)}</span>
+                          </div>
+                          <div className="px-3 py-2 space-y-1">
+                            {c.adults > 0 && <div className="flex justify-between text-navy-500"><span>{c.adults} adulto{c.adults !== 1 ? 's' : ''}</span><span>{fmt(c.adults * p.adultPrice)}</span></div>}
+                            {c.youth  > 0 && <div className="flex justify-between text-navy-500"><span>{c.youth} adolescente{c.youth !== 1 ? 's' : ''}</span><span>{fmt(c.youth * p.youthPrice)}</span></div>}
+                          </div>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between">
-                      <span className="text-navy-400">{t('reservation.sum.subtotal')}</span>
-                      <span className="font-semibold">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(peopleSubtotal + addonsTotal)}</span>
-                    </div>
-                    {hasGroupDiscount && (
-                      <div className="flex justify-between text-green-700">
-                        <span>{t('reservation.sum.groupDiscount')}</span>
-                        <span className="font-semibold">−{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(discount)}</span>
+
+                    {/* Niños — paquete único */}
+                    {children > 0 && (
+                      <div className="rounded-xl border border-navy-100 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-navy-50 border-b border-navy-100">
+                          <span>🍕</span>
+                          <span className="font-semibold text-navy-800 text-[12.5px]">Niños · agua, sodas y pizza</span>
+                          <span className="ml-auto font-bold text-navy-900">{fmt(childrenCost)}</span>
+                        </div>
+                        <div className="px-3 py-2">
+                          <div className="flex justify-between text-navy-500">
+                            <span>{children} niño{children !== 1 ? 's' : ''}</span>
+                            <span>{fmt(childrenCost)}</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Promo code */}
-                <div className="flex gap-2 mt-3">
-                  <input
-                    type="text"
-                    value={promoCode}
-                    onChange={e => setPromoCode(e.target.value)}
-                    placeholder={t('reservation.sum.promoCode')}
-                    className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-navy-200 text-[13px] font-sans focus:outline-none focus:border-gold-400 focus:ring-2 focus:ring-gold-200"
-                  />
-                  <button type="button" className="btn-ghost text-[13px] px-3 py-2 rounded-xl border border-navy-200">
-                    {t('reservation.sum.apply')}
-                  </button>
-                </div>
-
                 {/* Total */}
                 <div className="flex justify-between items-baseline pt-4 mt-3 border-t-2 border-navy-900">
                   <span className="text-[13px] font-bold uppercase tracking-wider text-navy-400">{t('reservation.sum.total')}</span>
                   <div className="text-right">
-                    <span className="font-display font-black text-[30px] text-navy-900">
-                      {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(pkg ? total : 0)}
-                    </span>
+                    <span className="font-display font-black text-[30px] text-navy-900">{fmt(total)}</span>
                     <span className="text-[12px] text-navy-400 ml-1">MXN</span>
                   </div>
                 </div>

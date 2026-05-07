@@ -1,4 +1,4 @@
-import { PACKAGES, DISCOUNT_MIN_PEOPLE, DISCOUNT_RATE } from '@constants/index'
+import { PACKAGES } from '@constants/index'
 import type { PackageId } from '@constants/index'
 
 export interface PricingResult {
@@ -16,9 +16,9 @@ export const calculatePrice = (
   const pkg = PACKAGES[packageId]
   const pricePerPerson = pkg.pricePerPerson
   const subtotal = pricePerPerson * numberOfPeople
-  const hasGroupDiscount = numberOfPeople >= DISCOUNT_MIN_PEOPLE
-  const discount = hasGroupDiscount ? subtotal * DISCOUNT_RATE : 0
-  const total = subtotal - discount
+  // Descuentos grupales eliminados
+  const discount = 0
+  const total = subtotal
 
-  return { subtotal, discount, total, pricePerPerson, hasGroupDiscount }
+  return { subtotal, discount, total, pricePerPerson, hasGroupDiscount: false }
 }

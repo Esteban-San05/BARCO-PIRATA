@@ -76,7 +76,7 @@ export default function SalePage() {
             <Row label="Teléfono" value={reservation.contactPhone} />
             <Row label="Fecha del paseo" value={formatDate(reservation.date)} />
             <Row label="Hora" value={formatTime(reservation.time)} />
-            <Row label="No. Personas" value={`${reservation.numberOfPeople}`} />
+            <Row label="No. Personas" value={`${reservation.totalPassengers}`} />
             <Row label="Paquete" value={`${pkg?.icon} ${pkg?.label}`} />
             <Row label="Tipo de servicio" value={reservation.serviceType} />
             <Row label="Estado" value={<StatusBadge status={reservation.status} />} />

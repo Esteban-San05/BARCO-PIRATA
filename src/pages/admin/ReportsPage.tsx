@@ -388,7 +388,7 @@ export default function ReportsPage() {
                         <td className="px-5 py-3 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{r.time}</td>
                         <td className="px-5 py-3 font-medium" style={{ color: 'var(--text-body)' }}>{r.contactName}</td>
                         <td className="hidden sm:table-cell px-5 py-3" style={{ color: 'var(--text-muted)' }}>{r.contactPhone}</td>
-                        <td className="hidden sm:table-cell px-5 py-3 text-center" style={{ color: 'var(--text-muted)' }}>{r.numberOfPeople}</td>
+                        <td className="hidden sm:table-cell px-5 py-3 text-center" style={{ color: 'var(--text-muted)' }}>{r.totalPassengers}</td>
                         <td className="hidden sm:table-cell px-5 py-3" style={{ color: 'var(--text-muted)' }}>
                           {r.packageId.replace(/_/g, ' ')}
                         </td>

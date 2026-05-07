@@ -39,7 +39,7 @@ export default function ReservationsPage() {
   }, [reservations, statusFilter, search])
 
   // Métricas del footer
-  const totalPersonas    = filtered.reduce((s, r) => s + r.numberOfPeople, 0)
+  const totalPersonas    = filtered.reduce((s, r) => s + r.totalPassengers, 0)
   const ingresosFiltrados = filtered
     .filter(r => r.status === 'pagada')
     .reduce((s, r) => s + r.total, 0)
@@ -64,7 +64,7 @@ export default function ReservationsPage() {
     const headers = ['Nombre', 'Teléfono', 'Hora', 'Personas', 'Paquete', 'Subtotal', 'Descuento', 'Total', 'Estado', 'Método de Pago']
     const rows = filtered.map(r => {
       const pkg = PACKAGES[r.packageId as PackageId]
-      return [r.contactName, r.contactPhone ?? '', r.time, r.numberOfPeople, pkg?.label ?? r.packageId, r.subtotal, r.discount, r.total, r.status, r.paymentMethod ?? '']
+      return [r.contactName, r.contactPhone ?? '', r.time, r.totalPassengers, pkg?.label ?? r.packageId, r.subtotal, r.discount, r.total, r.status, r.paymentMethod ?? '']
     })
     const csv = [headers, ...rows].map(row => row.map(v => `"${v}"`).join(',')).join('\n')
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -204,7 +204,7 @@ export default function ReservationsPage() {
                     >
                       <td className="px-4 py-4 font-semibold" style={{ color: 'var(--text-title)' }}>{r.contactName}</td>
                       <td className="hidden sm:table-cell px-4 py-4 font-mono text-xs font-bold" style={{ color: 'var(--text-body)' }}>{r.time}</td>
-                      <td className="hidden sm:table-cell px-4 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
+                      <td className="hidden sm:table-cell px-4 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.totalPassengers}</td>
                       <td className="hidden md:table-cell px-4 py-4" style={{ color: 'var(--text-body)' }}>{pkg?.label ?? r.packageId.replace(/_/g, ' ')}</td>
                       <td className="hidden md:table-cell px-4 py-4 font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.subtotal)}</td>
                       <td className="hidden lg:table-cell px-4 py-4 font-semibold" style={{ color: r.discount > 0 ? '#F87171' : 'var(--text-muted)' }}>

@@ -175,14 +175,14 @@
       "apply": "Apply",
       "total": "Total",
       "processing": "Processing…",
-      "bookAndPay": "Book & pay",
+      "bookAndPay": "Book now",
       "childHalf": "Child (50%)",
       "adultsX": "{{n}} × Adults",
       "childrenX": "{{n}} × Child (50%)"
     },
     "trust": {
-      "secure": "100% secure payment · Stripe / MercadoPago",
-      "confirmation": "Instant email confirmation",
+      "secure": "Payment by transfer or at the office",
+      "confirmation": "Instant WhatsApp confirmation",
       "cancellation": "Free cancellation up to 24 h before"
     },
     "help": "Need help?",

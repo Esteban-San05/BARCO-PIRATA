@@ -1,33 +1,35 @@
 // ─── Paquetes y precios ────────────────────────────────────────────────────
+// Precios por grupo de edad:
+//   adultPrice    → adultos (18+)
+//   youthPrice    → adolescentes (12-17)
+//   childrenPrice → niños (3-11)
+//   babies        → siempre gratis
+// pricePerPerson se mantiene = adultPrice para compatibilidad con pricing.ts
 export const PACKAGES = {
   CON_COMIDA: {
     id: 'con_comida',
-    label: 'Con Comida Incluida',
-    description: 'Paseo + buffet de mariscos a bordo',
-    pricePerPerson: 450,
+    label: 'Cena y Barra Libre',
+    description: 'Cena buffet + barra libre a bordo',
+    pricePerPerson: 700,
+    adultPrice:    700,
+    youthPrice:    500,  // 12-17: cena, soda y agua
     icon: '🍽️',
   },
   SOLO_BEBIDAS: {
     id: 'solo_bebidas',
-    label: 'Solo Bebidas',
-    description: 'Paseo + barra de bebidas a bordo',
-    pricePerPerson: 350,
+    label: 'Cena o Barra Libre',
+    description: 'Elige entre cena o barra de bebidas a bordo',
+    pricePerPerson: 600,
+    adultPrice:    600,
+    youthPrice:    400,  // 12-17: sodas y agua
     icon: '🍹',
-  },
-  SOLO_PASEO: {
-    id: 'solo_paseo',
-    label: 'Solo Paseo',
-    description: 'Recorrido panorámico por el litoral',
-    pricePerPerson: 250,
-    icon: '⛵',
   },
 } as const
 
-export type PackageId = keyof typeof PACKAGES
+// Niños (3-11): paquete único fijo — agua, sodas y pizza
+export const CHILDREN_PRICE = 300
 
-// ─── Reglas de negocio ────────────────────────────────────────────────────
-export const DISCOUNT_MIN_PEOPLE = 5
-export const DISCOUNT_RATE = 0.10  // 10%
+export type PackageId = keyof typeof PACKAGES
 
 // ─── Capacidad del barco (debe coincidir con boat_capacity() en SQL) ─────
 export const BOAT_CAPACITY = 40

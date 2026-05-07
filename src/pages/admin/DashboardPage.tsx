@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const totalRevenue = reservations
     .filter((r) => r.status === 'pagada')
     .reduce((sum, r) => sum + r.total, 0)
-  const totalPeople    = reservations.reduce((sum, r) => sum + r.numberOfPeople, 0)
+  const totalPeople    = reservations.reduce((sum, r) => sum + r.totalPassengers, 0)
   const pagadasCount   = reservations.filter(r => r.status === 'pagada').length
   const payRate        = reservations.length
     ? Math.round((pagadasCount / reservations.length) * 100)
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                   >
                     <td className="px-5 py-4 font-semibold" style={{ color: 'var(--text-title)' }}>{r.contactName}</td>
                     <td className="hidden sm:table-cell px-5 py-4" style={{ color: 'var(--text-body)' }}>{r.time}</td>
-                    <td className="hidden sm:table-cell px-5 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.numberOfPeople}</td>
+                    <td className="hidden sm:table-cell px-5 py-4 text-center" style={{ color: 'var(--text-body)' }}>{r.totalPassengers}</td>
                     <td className="hidden md:table-cell px-5 py-4" style={{ color: 'var(--text-body)' }}>{r.packageId.replace(/_/g, ' ')}</td>
                     <td className="px-5 py-4 font-bold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.total)}</td>
                     <td className="px-5 py-4"><StatusBadge status={r.status} /></td>

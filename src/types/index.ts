@@ -13,6 +13,15 @@ export interface Reservation {
   date: string           // ISO date string "YYYY-MM-DD"
   time: string           // "HH:mm"
   numberOfPeople: number
+  // Desglose por grupo de edad
+  adults: number
+  youth: number          // 13-17 años (75%)
+  children: number       // 3-12 años (50%)
+  babies: number         // 1-3 años (gratis)
+  totalPassengers: number // adults + youth + children + babies (tripulación real, calculado en DB)
+  adultsCost: number
+  youthCost: number
+  childrenCost: number
   packageId: PackageId
   serviceType: 'individual' | 'grupal'
   subtotal: number
@@ -55,6 +64,14 @@ export interface CreateReservationDto {
   date: string
   time: string
   numberOfPeople: number
+  // Desglose por grupo de edad
+  adults: number
+  youth: number
+  children: number
+  babies: number
+  adultsCost: number
+  youthCost: number
+  childrenCost: number
   packageId: PackageId
   serviceType: 'individual' | 'grupal'
   notes?: string

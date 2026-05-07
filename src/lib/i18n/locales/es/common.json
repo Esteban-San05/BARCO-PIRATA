@@ -175,14 +175,14 @@
       "apply": "Aplicar",
       "total": "Total",
       "processing": "Procesando…",
-      "bookAndPay": "Reservar y pagar",
+      "bookAndPay": "Reservar",
       "childHalf": "Niño (50%)",
       "adultsX": "{{n}} × Adultos",
       "childrenX": "{{n}} × Niño (50%)"
     },
     "trust": {
-      "secure": "Pago 100% seguro · Stripe / MercadoPago",
-      "confirmation": "Confirmación inmediata por correo",
+      "secure": "Pago por transferencia o en la oficina",
+      "confirmation": "Confirmación inmediata por WhatsApp",
       "cancellation": "Cancelación gratis hasta 24 h antes"
     },
     "help": "¿Necesitas ayuda?",

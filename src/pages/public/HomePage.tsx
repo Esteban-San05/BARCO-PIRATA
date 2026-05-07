@@ -7,6 +7,7 @@ import { Button } from '@components/ui/Button'
 import { Card } from '@components/ui/Card'
 import { ImageCarousel } from '@components/ui/ImageCarousel'
 import { HeroSection } from '@components/ui/HeroSection'
+import { ReviewsSection } from '@components/ui/ReviewsSection'
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -58,43 +59,9 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════
-          VIDEO — sección de video estratégico
+          RESEÑAS DE GOOGLE — carrusel
          ══════════════════════════════════════════════════ */}
-      <section id="video" className="bg-navy-900 py-16">
-        <div className="container-app">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-display font-bold text-white mb-2">
-              {t('home.video.title')}{' '}
-              <span className="text-gold-400">{t('home.video.highlight')}</span>
-            </h2>
-            <p className="text-navy-200">
-              {t('home.video.subtitle')}
-            </p>
-          </div>
-
-          {/* Video player */}
-          <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-modal border border-gold-400/20">
-            <video
-              src="/images/video-barco.mp4"
-              className="w-full aspect-video object-cover"
-              controls
-              preload="metadata"
-              poster="/images/carrete-1.jpeg"
-              playsInline
-            >
-              {t('home.video.fallback')}
-            </video>
-          </div>
-
-          <div className="text-center mt-8">
-            <Link to={reserveTodayHref}>
-              <Button variant="accent" size="lg">
-                {t('home.video.cta')}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ReviewsSection reserveTodayHref={reserveTodayHref} />
 
       {/* ══════════════════════════════════════════════════
           GALERÍA — misma vibra oscura pirata
