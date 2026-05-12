@@ -6,23 +6,38 @@ export const paymentService = {
    * Registra un pago completado (efectivo o transferencia confirmada por admin).
    */
   async recordPayment(dto: ProcessPaymentDto): Promise<Payment> {
+    const payload = {
+      reservation_id: dto.reservationId,
+      method: dto.method,
+      amount: 0,
+      status: dto.adminConfirm ? 'completado' : 'pendiente',
+      transferencia_reference: dto.transferenciaReference ?? null,
+    }
+
+    // Intentar INSERT con SELECT inline
     const { data, error } = await supabase
       .from('payments')
-      .insert({
-        reservation_id: dto.reservationId,
-        method: dto.method,
-        amount: 0, // Se actualiza desde el backend con el monto real
-        status: dto.adminConfirm ? 'completado' : 'pendiente',
-        transferencia_reference: dto.transferenciaReference ?? null,
-      })
+      .insert(payload)
       .select()
       .single()
 
-    if (error) throw new Error(error.message)
-    if (!data) throw new Error('No se recibió respuesta al registrar el pago')
+    if (error && error.code !== 'PGRST116') throw new Error(error.message)
 
-    const row = data as Record<string, unknown>
-    if (!row.id || typeof row.id !== 'string') throw new Error('Respuesta de pago inválida: falta id')
+    // Si el SELECT inline falló por RLS, recuperar el registro recién creado por separado
+    const row: Record<string, unknown> = data
+      ?? await (async () => {
+        const { data: fetched, error: fetchError } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('reservation_id', dto.reservationId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        if (fetchError) throw new Error(fetchError.message)
+        return fetched as Record<string, unknown>
+      })()
+
+    if (!row?.id || typeof row.id !== 'string') throw new Error('No se pudo recuperar el registro del pago')
 
     return {
       id: row.id,

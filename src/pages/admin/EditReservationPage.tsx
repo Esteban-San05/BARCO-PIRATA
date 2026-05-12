@@ -5,6 +5,7 @@ import { PACKAGES, TIME_SLOTS, CHILDREN_PRICE, BOAT_CAPACITY } from '@constants/
 import type { PackageId } from '@constants/index'
 import { formatCurrency, formatDate } from '@utils/formatters'
 import { useReservation, useUpdateReservation } from '@features/reservations/hooks/useReservations'
+import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
 import { Button } from '@components/ui/Button'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
 
@@ -73,6 +74,9 @@ export default function EditReservationPage() {
 
   const { data: reservation, isLoading } = useReservation(reservationId ?? '')
   const { mutateAsync: updateReservation, isPending } = useUpdateReservation()
+  const { data: bizSettings } = useBusinessSettings()
+
+  const activeTimeSlots = bizSettings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time)
 
   // Estado local — se inicializa una vez que llega la reservación
   const [initialized, setInitialized] = useState(false)
@@ -80,7 +84,7 @@ export default function EditReservationPage() {
   const [children, setChildren] = useState(0)
   const [babies,   setBabies]   = useState(0)
   const [date,     setDate]     = useState('')
-  const [time,     setTime]     = useState(TIME_SLOTS[0].time)
+  const [time,     setTime]     = useState('')
   const [error,    setError]    = useState<string | null>(null)
 
   // Pre-cargar datos cuando llega la reservación
@@ -434,11 +438,11 @@ export default function EditReservationPage() {
               <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Horario *</label>
               <select value={time} onChange={e => setTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={inputStyle}>
-                {TIME_SLOTS.map(slot => (
-                  <option key={slot.time} value={slot.time}>
-                    {slot.icon} {slot.label} — {slot.time}
-                  </option>
-                ))}
+                {activeTimeSlots.map(ts => {
+                  const known = TIME_SLOTS.find(s => s.time === ts)
+                  const label = known ? `${known.icon} ${known.label} — ${ts}` : ts
+                  return <option key={ts} value={ts}>{label}</option>
+                })}
               </select>
             </div>
           </div>

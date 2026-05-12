@@ -1,4 +1,7 @@
 import { create } from 'zustand'
+
+const localDateStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 import type { Reservation } from '@app-types/index'
 import type { PackageId } from '@constants/index'
 
@@ -41,6 +44,6 @@ export const useReservationStore = create<ReservationStore>((set) => ({
   pkgBreakdown: null,
   setPkgBreakdown: (b) => set({ pkgBreakdown: b }),
 
-  selectedDate: new Date().toISOString().split('T')[0],
+  selectedDate: localDateStr(new Date()),
   setSelectedDate: (date) => set({ selectedDate: date }),
 }))

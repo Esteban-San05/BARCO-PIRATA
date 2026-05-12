@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from 'react'
-import { CalendarDays, Search, Download, Banknote, ArrowLeftRight, Plus } from 'lucide-react'
+import { CalendarDays, Search, Download, Banknote, ArrowLeftRight, Plus, AlertTriangle, CheckCircle2, ClipboardList } from 'lucide-react'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useReservationsByDate, useCancelReservation } from '@features/reservations/hooks/useReservations'
+import { useManifestStatusByDate } from '@features/passengers/hooks/usePassengers'
 import { formatCurrency } from '@utils/formatters'
 import { StatusBadge } from '@components/ui/Badge'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
@@ -14,6 +15,7 @@ import { es } from 'date-fns/locale'
 
 type StatusFilter = 'all' | 'pendiente' | 'confirmada' | 'pagada' | 'cancelada'
 type PaymentFilter = 'all' | 'efectivo' | 'transferencia'
+type ManifestFilter = 'all' | 'completo' | 'incompleto'
 
 export default function ReservationsPage() {
   const { selectedDate, setSelectedDate } = useReservationStore()
@@ -21,16 +23,42 @@ export default function ReservationsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all')
+  const [manifestFilter, setManifestFilter] = useState<ManifestFilter>('all')
   const { data, isLoading, isError, error } = useReservationsByDate(selectedDate)
+  const { data: manifestStatuses } = useManifestStatusByDate(selectedDate)
   const { mutateAsync: cancelReservation } = useCancelReservation()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState<string | null>(null)
   const reservations = data?.data ?? []
 
+  // Mapa reservationId → status de manifiesto
+  const manifestMap = useMemo(() => {
+    const map: Record<string, { filled: number; required: number; isComplete: boolean }> = {}
+    for (const s of manifestStatuses ?? []) map[s.reservationId] = s
+    return map
+  }, [manifestStatuses])
+
+  const manifestCounts = useMemo(() => {
+    let completo = 0, incompleto = 0
+    for (const r of reservations) {
+      const ms = manifestMap[r.id]
+      if (!ms || ms.required === 0) { incompleto++; continue }
+      ms.isComplete ? completo++ : incompleto++
+    }
+    return { completo, incompleto }
+  }, [reservations, manifestMap])
+
   const filtered = useMemo(() => {
     let list = reservations
     if (statusFilter !== 'all') list = list.filter(r => r.status === statusFilter)
     if (paymentFilter !== 'all') list = list.filter(r => r.paymentMethod === paymentFilter)
+    if (manifestFilter !== 'all') {
+      list = list.filter(r => {
+        const ms = manifestMap[r.id]
+        const isComplete = ms && ms.required > 0 && ms.isComplete
+        return manifestFilter === 'completo' ? isComplete : !isComplete
+      })
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(r =>
@@ -39,7 +67,7 @@ export default function ReservationsPage() {
       )
     }
     return list
-  }, [reservations, statusFilter, paymentFilter, search])
+  }, [reservations, statusFilter, paymentFilter, manifestFilter, search, manifestMap])
 
   // Métricas del footer
   const totalPersonas    = filtered.reduce((s, r) => s + r.totalPassengers, 0)
@@ -143,6 +171,37 @@ export default function ReservationsPage() {
           ))}
         </div>
 
+        {/* Filtro de manifiesto */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <ClipboardList className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
+          {([
+            { key: 'all' as ManifestFilter,        label: 'Todos',       icon: null,            count: reservations.length },
+            { key: 'completo' as ManifestFilter,   label: 'Completo',    icon: <CheckCircle2 className="w-3 h-3" />, count: manifestCounts.completo },
+            { key: 'incompleto' as ManifestFilter, label: 'Incompleto',  icon: <AlertTriangle className="w-3 h-3" />, count: manifestCounts.incompleto },
+          ]).map(({ key, label, icon, count }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setManifestFilter(key)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors"
+              style={{
+                borderColor: manifestFilter === key ? (key === 'incompleto' ? '#d97706' : key === 'completo' ? '#16a34a' : 'var(--accent)') : 'var(--border)',
+                background:  manifestFilter === key ? (key === 'incompleto' ? 'rgba(217,119,6,0.1)' : key === 'completo' ? 'rgba(22,163,74,0.1)' : 'rgba(var(--accent-rgb),0.12)') : 'var(--bg-surface)',
+                color:       manifestFilter === key ? (key === 'incompleto' ? '#d97706' : key === 'completo' ? '#16a34a' : 'var(--accent)') : 'var(--text-muted)',
+              }}
+            >
+              {icon}
+              {label}
+              <span
+                className="ml-0.5 rounded-full px-1 text-[10px] font-bold"
+                style={{ background: 'var(--bg-surface-alt)' }}
+              >
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center gap-2 shrink-0">
           {(['all', 'efectivo', 'transferencia'] as const).map((key) => (
             <button
@@ -222,16 +281,17 @@ export default function ReservationsPage() {
               <thead style={{ background: 'var(--bg-surface-alt)' }}>
                 <tr>
                   {[
-                    { label: 'Nombre',   cls: '' },
-                    { label: 'Hora',     cls: 'hidden sm:table-cell' },
-                    { label: 'Personas', cls: 'hidden sm:table-cell' },
-                    { label: 'Paquete',  cls: 'hidden md:table-cell' },
-                    { label: 'Subtotal', cls: 'hidden md:table-cell' },
-                    { label: 'Desc.',    cls: 'hidden lg:table-cell' },
-                    { label: 'Total',    cls: '' },
-                    { label: 'Estado',   cls: '' },
-                    { label: 'Pago',     cls: 'hidden lg:table-cell' },
-                    { label: 'Acción',   cls: '' },
+                    { label: 'Nombre',      cls: '' },
+                    { label: 'Hora',        cls: 'hidden sm:table-cell' },
+                    { label: 'Personas',    cls: 'hidden sm:table-cell' },
+                    { label: 'Paquete',     cls: 'hidden md:table-cell' },
+                    { label: 'Subtotal',    cls: 'hidden md:table-cell' },
+                    { label: 'Desc.',       cls: 'hidden lg:table-cell' },
+                    { label: 'Total',       cls: '' },
+                    { label: 'Estado',      cls: '' },
+                    { label: 'Manifiesto',  cls: 'hidden sm:table-cell' },
+                    { label: 'Pago',        cls: 'hidden lg:table-cell' },
+                    { label: 'Acción',      cls: '' },
                   ].map(({ label, cls }) => (
                     <th
                       key={label}
@@ -292,6 +352,23 @@ export default function ReservationsPage() {
                       </td>
                       <td className="px-4 py-4 font-bold" style={{ color: 'var(--text-title)' }}>{formatCurrency(r.total)}</td>
                       <td className="px-4 py-4"><StatusBadge status={r.status} /></td>
+                      <td className="hidden sm:table-cell px-4 py-4">
+                        {(() => {
+                          const ms = manifestMap[r.id]
+                          if (!ms || ms.required === 0) return (
+                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>—</span>
+                          )
+                          return ms.isComplete ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> {ms.filled}/{ms.required}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: '#d97706' }}>
+                              <AlertTriangle className="w-3.5 h-3.5" /> {ms.filled}/{ms.required}
+                            </span>
+                          )
+                        })()}
+                      </td>
                       <td className="hidden lg:table-cell px-4 py-4">
                         {r.paymentMethod ? (
                           <span className="inline-flex items-center gap-1.5 text-xs capitalize" style={{ color: 'var(--text-muted)' }}>

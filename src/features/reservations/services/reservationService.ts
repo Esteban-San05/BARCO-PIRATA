@@ -86,7 +86,9 @@ export const reservationService = {
 
   async getById(id: string): Promise<Reservation> {
     const { data, error } = await supabase
-      .rpc('get_reservation_by_id', { p_id: id })
+      .from('reservations')
+      .select('*')
+      .eq('id', id)
       .single()
 
     if (error) throw new Error(error.message)

@@ -1,11 +1,12 @@
 import { supabase } from '@lib/supabase'
 import type { BusinessSettings } from '@app-types/index'
+import { TIME_SLOTS } from '@constants/index'
 
 const COLS = 'closed_weekdays, active_time_slots, boat_capacity, closed_dates, package_overrides, promotions'
 
 const mapRow = (row: Record<string, unknown>): BusinessSettings => ({
   closedWeekdays:   (row.closed_weekdays   as number[] | null) ?? [1],
-  activeTimeSlots:  row.active_time_slots  as string[],
+  activeTimeSlots:  (row.active_time_slots as string[] | null) ?? TIME_SLOTS.map(s => s.time),
   boatCapacity:     row.boat_capacity      as number,
   closedDates:      (row.closed_dates      as string[] | null) ?? [],
   packageOverrides: (row.package_overrides as BusinessSettings['packageOverrides'] | null) ?? {},

@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Users, CalendarCheck, DollarSign, TrendingUp, CalendarDays, Banknote, ArrowLeftRight, Baby } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Users, CalendarCheck, DollarSign, TrendingUp, CalendarDays, Banknote, ArrowLeftRight, Baby, AlertTriangle } from 'lucide-react'
 import { ClimaMarino } from '@components/ClimaMarino'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useReservationsByDate } from '@features/reservations/hooks/useReservations'
+import { useManifestStatusByDate } from '@features/passengers/hooks/usePassengers'
 import { formatCurrency } from '@utils/formatters'
 import { StatusBadge } from '@components/ui/Badge'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
@@ -13,12 +14,32 @@ import type { PackageId } from '@constants/index'
 import { format, parse } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+const localToday = (() => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})()
+
 export default function DashboardPage() {
   const { selectedDate, setSelectedDate } = useReservationStore()
   const [calOpen, setCalOpen] = useState(false)
   const { data, isLoading, isError } = useReservationsByDate(selectedDate)
+  const { data: manifestStatuses } = useManifestStatusByDate(selectedDate)
 
   const reservations = data?.data ?? []
+
+  // Mapa reservationId → status (solo se usa cuando selectedDate === hoy)
+  const manifestMap = useMemo(() => {
+    const map: Record<string, { filled: number; required: number; isComplete: boolean }> = {}
+    if (manifestStatuses && selectedDate === localToday) {
+      for (const s of manifestStatuses) map[s.reservationId] = s
+    }
+    return map
+  }, [manifestStatuses, selectedDate])
+
+  const isToday = selectedDate === localToday
+  const incompleteManifests = isToday
+    ? (manifestStatuses ?? []).filter(s => !s.isComplete && s.required > 0)
+    : []
 
   // ── KPI derivados ──────────────────────────────────────────────────────────
   const pagadas        = reservations.filter(r => r.status === 'pagada')
@@ -66,6 +87,26 @@ export default function DashboardPage() {
           adminMode
         />
       </div>
+
+      {/* ── Banner manifiesto incompleto (solo hoy) ───────────────────────── */}
+      {isToday && incompleteManifests.length > 0 && (
+        <div
+          className="flex items-start gap-3 rounded-xl px-4 py-3"
+          style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.4)' }}
+        >
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#d97706' }} />
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#92400e' }}>
+              {incompleteManifests.length === 1
+                ? '1 reservación con manifiesto incompleto hoy'
+                : `${incompleteManifests.length} reservaciones con manifiesto incompleto hoy`}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: '#b45309' }}>
+              Capitanía requiere nombre y edad de todos los pasajeros antes de zarpar.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── KPI Grid ──────────────────────────────────────────────────────── */}
       <div className="bp-kpi-grid">
@@ -246,6 +287,7 @@ export default function DashboardPage() {
                     { label: 'Paquete',     cls: 'hidden md:table-cell' },
                     { label: 'Total',       cls: '' },
                     { label: 'Estado',      cls: '' },
+                    { label: 'Manifiesto',  cls: isToday ? '' : 'hidden' },
                     { label: 'Acción',      cls: '' },
                   ].map(({ label, cls }) => (
                     <th
@@ -296,6 +338,22 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-5 py-4 font-bold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.total)}</td>
                       <td className="px-5 py-4"><StatusBadge status={r.status} /></td>
+                      <td className={`px-5 py-4 ${isToday ? '' : 'hidden'}`}>
+                        {(() => {
+                          const ms = manifestMap[r.id]
+                          if (!ms || ms.required === 0) return null
+                          return ms.isComplete ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
+                              ✓ Completo
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: '#d97706' }}>
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              {ms.filled}/{ms.required}
+                            </span>
+                          )
+                        })()}
+                      </td>
                       <td className="px-5 py-4">
                         <Link
                           to={`/admin/venta/${r.id}`}

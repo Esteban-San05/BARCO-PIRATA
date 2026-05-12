@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Clock, CalendarOff, Ship, Save, Check, Plus, X, CloudLightning, Minus } from 'lucide-react'
 import { clsx } from 'clsx'
 import { format, parse } from 'date-fns'
@@ -174,15 +174,17 @@ function ClimaDesfavorable({
 }
 
 export default function SchedulePage() {
-  const { data: settings, isLoading } = useBusinessSettings()
+  const { data: settings, isLoading, isPlaceholderData } = useBusinessSettings()
   const { mutateAsync: save, isPending: saving } = useUpdateBusinessSettings()
   const { setSlot } = useAdminHeaderSlot()
-  const [saved, setSaved] = useState(false)
+  const [saved,      setSaved]      = useState(false)
+  const [saveError,  setSaveError]  = useState<string | null>(null)
+  const initializedRef = useRef(false)
 
-  const [closedWeekdays, setClosedWeekdays] = useState<number[]>(settings?.closedWeekdays ?? [1])
-  const [activeSlots,    setActiveSlots]    = useState(settings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time))
-  const [boatCapacity,   setBoatCapacity]   = useState(settings?.boatCapacity    ?? 40)
-  const [closedDates,    setClosedDates]    = useState<string[]>(settings?.closedDates ?? [])
+  const [closedWeekdays, setClosedWeekdays] = useState<number[]>([1])
+  const [activeSlots,    setActiveSlots]    = useState<string[]>(TIME_SLOTS.map(s => s.time))
+  const [boatCapacity,   setBoatCapacity]   = useState(40)
+  const [closedDates,    setClosedDates]    = useState<string[]>([])
   const [pickingDate,    setPickingDate]    = useState(false)
   const [newHour,        setNewHour]        = useState('')
   const [newMinute,      setNewMinute]      = useState('')
@@ -197,13 +199,16 @@ export default function SchedulePage() {
     return { label, icon }
   }
 
+  // Inicializa el estado local solo una vez con datos reales del servidor.
+  // No re-sincroniza después (evita perder cambios locales por re-fetches o foco de ventana).
   useEffect(() => {
-    if (!settings) return
+    if (!settings || isPlaceholderData || initializedRef.current) return
     setClosedWeekdays(settings.closedWeekdays)
-    setActiveSlots(settings.activeTimeSlots)
+    setActiveSlots(settings.activeTimeSlots ?? TIME_SLOTS.map(s => s.time))
     setBoatCapacity(settings.boatCapacity)
     setClosedDates(settings.closedDates)
-  }, [settings])
+    initializedRef.current = true
+  }, [settings, isPlaceholderData])
 
   const handleHourChange = (val: string) => {
     const digits = val.replace(/\D/g, '').slice(0, 2)
@@ -273,15 +278,25 @@ export default function SchedulePage() {
   }
 
   const handleSave = useCallback(async () => {
-    await save({ closedWeekdays, activeTimeSlots: activeSlots, boatCapacity, closedDates })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    setSaveError(null)
+    try {
+      await save({ closedWeekdays, activeTimeSlots: activeSlots, boatCapacity, closedDates })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Error al guardar')
+    }
   }, [save, closedWeekdays, activeSlots, boatCapacity, closedDates])
 
   // Enviar botón de guardar al header
   useEffect(() => {
     setSlot(
       <div className="flex items-center gap-4">
+        {saveError && (
+          <span className="text-sm text-red-500 font-semibold max-w-xs truncate" title={saveError}>
+            ✕ {saveError}
+          </span>
+        )}
         {saved && (
           <span className="text-sm text-green-600 font-semibold flex items-center gap-1.5">
             <Check className="w-4 h-4" /> Guardado
@@ -294,7 +309,7 @@ export default function SchedulePage() {
       </div>
     )
     return () => setSlot(null)
-  }, [saving, saved, setSlot, handleSave])
+  }, [saving, saved, saveError, setSlot, handleSave])
 
   if (isLoading) return (
     <div className="flex items-center justify-center py-20" style={{ color: 'var(--text-muted)' }}>

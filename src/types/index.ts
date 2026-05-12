@@ -158,6 +158,37 @@ export interface DailyReport {
   reservations: Reservation[]
 }
 
+// ─── Manifiesto de pasajeros (Capitanía) ─────────────────────────────────
+
+export type PassengerType = 'adult' | 'youth' | 'child' | 'baby'
+
+export interface Passenger {
+  id: string
+  reservationId: string
+  fullName: string | null
+  age: number | null
+  passengerType: PassengerType
+  position: number
+  createdAt: string
+}
+
+/** Fila a guardar (sin id ni createdAt — los asigna la DB) */
+export interface PassengerInput {
+  fullName: string | null
+  age: number | null
+  passengerType: PassengerType
+  position: number
+}
+
+export interface ManifestStatus {
+  reservationId: string
+  date: string
+  time: string
+  required: number
+  filled: number
+  isComplete: boolean
+}
+
 // ─── UI helpers ──────────────────────────────────────────────────────────
 
 export type Status = 'idle' | 'loading' | 'success' | 'error'

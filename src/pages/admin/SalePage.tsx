@@ -13,6 +13,7 @@ import { Button } from '@components/ui/Button'
 import { Card } from '@components/ui/Card'
 import { StatusBadge } from '@components/ui/Badge'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
+import { PassengerListEditor } from '@components/admin/PassengerListEditor'
 
 export default function SalePage() {
   const { reservationId } = useParams<{ reservationId: string }>()
@@ -28,6 +29,7 @@ export default function SalePage() {
   const [method, setMethod]             = useState<PaymentMethod>('efectivo')
   const [transRef, setTransRef]         = useState('')
   const [transRefError, setTransRefError] = useState<string | null>(null)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   if (isLoading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
   if (!reservation) return <div className="text-center py-20 text-navy-500">Reservación no encontrada.</div>
@@ -42,42 +44,67 @@ export default function SalePage() {
       return
     }
     setTransRefError(null)
-    await processPayment({
-      reservationId: reservation.id,
-      method,
-      adminConfirm: true,
-      transferenciaReference: method === 'transferencia' ? transRef.trim() : undefined,
-    })
-    setPaid(true)
+    setPaymentError(null)
+    try {
+      await processPayment({
+        reservationId: reservation.id,
+        method,
+        adminConfirm: true,
+        transferenciaReference: method === 'transferencia' ? transRef.trim() : undefined,
+      })
+      setPaid(true)
+    } catch (e) {
+      setPaymentError((e as Error)?.message ?? 'Error al registrar el pago. Intenta de nuevo.')
+    }
   }
 
   const handlePrint = () => window.print()
 
-  // ── Desglose de pasajeros ──────────────────────────────────────────────────
-  // Los costos totales están en la reservación pero no el desglose por paquete,
-  // así que mostramos por tipo de pasajero con el costo unitario del paquete dominante.
-  const passengerRows = [
-    reservation.adults   > 0 && {
-      label: `${reservation.adults} adulto${reservation.adults !== 1 ? 's' : ''}`,
-      cost: reservation.adultsCost,
-      unitLabel: `× ${formatCurrency(reservation.adultsCost / reservation.adults)} c/u`,
-    },
-    reservation.youth    > 0 && {
-      label: `${reservation.youth} adolescente${reservation.youth !== 1 ? 's' : ''}`,
-      cost: reservation.youthCost,
-      unitLabel: `× ${formatCurrency(reservation.youthCost / reservation.youth)} c/u`,
-    },
-    reservation.children > 0 && {
-      label: `${reservation.children} niño${reservation.children !== 1 ? 's' : ''}`,
-      cost: reservation.childrenCost,
-      unitLabel: `× ${formatCurrency(CHILDREN_PRICE)} c/u`,
-    },
-    reservation.babies   > 0 && {
-      label: `${reservation.babies} bebé${reservation.babies !== 1 ? 's' : ''}`,
-      cost: 0,
-      unitLabel: 'Gratis',
-    },
-  ].filter(Boolean) as { label: string; cost: number; unitLabel: string }[]
+  // ── Grupos de tripulación por paquete ─────────────────────────────────────
+  const breakdown = reservation.packageBreakdown ?? []
+  const hasBreakdown = breakdown.length > 0
+
+  type PkgGroup = { packageId: string; icon: string; label: string; total: number; rows: { label: string; amount: number }[] }
+
+  const pkgGroups: PkgGroup[] = []
+
+  if (hasBreakdown) {
+    for (const item of breakdown.filter(i => i.packageId !== 'NINOS')) {
+      const itemPkg  = PACKAGES[item.packageId as PackageId]
+      const adults   = item.adults    ?? 0
+      const aPrice   = item.adultPrice ?? 0
+      const youth    = item.youth     ?? 0
+      const yPrice   = item.youthPrice ?? 0
+      const rows: { label: string; amount: number }[] = []
+      if (adults > 0) rows.push({ label: `${adults} adulto${adults !== 1 ? 's' : ''}`, amount: adults * aPrice })
+      if (youth  > 0) rows.push({ label: `${youth} adolescente${youth !== 1 ? 's' : ''}`, amount: youth * yPrice })
+      const groupTotal = adults * aPrice + youth * yPrice
+      if (rows.length > 0)
+        pkgGroups.push({ packageId: item.packageId, icon: itemPkg?.icon ?? '🎫', label: itemPkg?.label ?? item.packageId, total: groupTotal, rows })
+    }
+  } else {
+    // Paquete único
+    const rows: { label: string; amount: number }[] = []
+    if (reservation.adults > 0) rows.push({ label: `${reservation.adults} adulto${reservation.adults !== 1 ? 's' : ''}`, amount: reservation.adultsCost })
+    if (reservation.youth  > 0) rows.push({ label: `${reservation.youth} adolescente${reservation.youth !== 1 ? 's' : ''}`, amount: reservation.youthCost })
+    pkgGroups.push({ packageId: reservation.packageId, icon: pkg?.icon ?? '🎫', label: pkg?.label ?? '', total: reservation.adultsCost + reservation.youthCost, rows })
+  }
+
+  // Niños: siempre desde reservation.children — independiente del breakdown
+  if (reservation.children > 0) {
+    const ninosPkg = PACKAGES['NINOS' as PackageId]
+    pkgGroups.push({ packageId: 'NINOS', icon: ninosPkg?.icon ?? '🍕', label: ninosPkg?.label ?? 'Niños',
+      total: reservation.childrenCost,
+      rows: [{ label: `${reservation.children} niño${reservation.children !== 1 ? 's' : ''}`, amount: reservation.childrenCost }] })
+  }
+
+  // Label de paquete para el encabezado del comprobante
+  const uniquePkgIds = hasBreakdown
+    ? [...new Set(breakdown.filter(i => i.packageId !== 'NINOS').map(i => i.packageId as PackageId))]
+    : [reservation.packageId as PackageId]
+  const pkgLabel = uniquePkgIds.length > 1
+    ? uniquePkgIds.map(id => `${PACKAGES[id]?.icon ?? ''} ${PACKAGES[id]?.label ?? id}`).join(' · ')
+    : `${pkg?.icon ?? ''} ${pkg?.label ?? ''}`
 
   return (
     <div>
@@ -133,7 +160,7 @@ export default function SalePage() {
             <Row label="Teléfono"       value={reservation.contactPhone} />
             <Row label="Fecha del paseo" value={formatDate(reservation.date)} />
             <Row label="Hora"           value={formatTime(reservation.time)} />
-            <Row label="Paquete"        value={`${pkg?.icon ?? ''} ${pkg?.label ?? ''}`} />
+            <Row label="Paquete"        value={pkgLabel} />
             <Row label="Tipo"           value={reservation.serviceType === 'grupal' ? 'Grupo' : 'Individual'} />
             <Row label="Estado"         value={<StatusBadge status={reservation.status} />} />
             {reservation.paymentMethod && (
@@ -153,26 +180,38 @@ export default function SalePage() {
 
           {/* Desglose de tripulación */}
           <div className="mb-5">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Users className="w-4 h-4 text-gold-600" />
               <span className="text-xs font-bold uppercase tracking-wider text-navy-400">Tripulación</span>
             </div>
-            <div className="rounded-xl border border-navy-100 overflow-hidden">
-              {passengerRows.map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between px-3 py-2.5 text-sm border-b border-navy-50 last:border-0"
-                >
-                  <div>
-                    <span className="font-medium text-navy-800">{row.label}</span>
-                    <span className="ml-2 text-xs text-navy-400">{row.unitLabel}</span>
+            <div className="space-y-2">
+              {pkgGroups.map(group => (
+                <div key={group.packageId} className="rounded-xl border border-navy-100 overflow-hidden">
+                  {/* Encabezado del paquete */}
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-navy-50">
+                    <span className="font-semibold text-sm text-navy-800">
+                      {group.icon} {group.label}
+                    </span>
+                    <span className="font-bold text-sm text-navy-900">{formatCurrency(group.total)}</span>
                   </div>
-                  {row.cost === 0
-                    ? <span className="text-green-600 font-semibold text-sm">Gratis</span>
-                    : <span className="font-semibold text-navy-900">{formatCurrency(row.cost)}</span>
-                  }
+                  {/* Filas de pasajeros */}
+                  {group.rows.map(row => (
+                    <div key={row.label} className="flex items-center justify-between px-3 py-2 text-sm border-t border-navy-50">
+                      <span className="text-navy-500">{row.label}</span>
+                      <span className="font-medium text-navy-700">{formatCurrency(row.amount)}</span>
+                    </div>
+                  ))}
                 </div>
               ))}
+              {/* Bebés siempre fuera de grupos */}
+              {reservation.babies > 0 && (
+                <div className="flex items-center justify-between px-3 py-2.5 text-sm rounded-xl border border-navy-100">
+                  <span className="font-medium text-navy-800">
+                    🍼 {reservation.babies} bebé{reservation.babies !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-green-600 font-semibold">Gratis</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -198,6 +237,19 @@ export default function SalePage() {
             Folio: <span className="font-mono text-navy-600">{reservation.id.slice(0, 8).toUpperCase()}</span>
           </p>
         </Card>
+
+        {/* ── Manifiesto de pasajeros ───────────────────────────────────── */}
+        {!isCancelada && (
+          <PassengerListEditor
+            reservationId={reservation.id}
+            counts={{
+              adults:   reservation.adults,
+              youth:    reservation.youth,
+              children: reservation.children,
+              babies:   reservation.babies,
+            }}
+          />
+        )}
 
         {/* ── Panel de cobro ────────────────────────────────────────────── */}
         {!isPagada && !isCancelada && (
@@ -275,6 +327,17 @@ export default function SalePage() {
                 : <><ArrowLeftRight className="w-4 h-4" /> Confirmar transferencia</>
               }
             </Button>
+
+            {paymentError && (
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
+                <p className="text-sm text-red-700">{paymentError}</p>
+                <button
+                  type="button"
+                  onClick={() => setPaymentError(null)}
+                  className="text-red-400 hover:text-red-600 font-bold shrink-0"
+                >✕</button>
+              </div>
+            )}
           </Card>
         )}
 

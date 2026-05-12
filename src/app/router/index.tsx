@@ -25,6 +25,7 @@ const BackupPage            = lazy(() => import('@pages/admin/BackupPage'))
 const NewReservationPage    = lazy(() => import('@pages/admin/NewReservationPage'))
 const EditReservationPage   = lazy(() => import('@pages/admin/EditReservationPage'))
 const PaquetesPage          = lazy(() => import('@pages/admin/PaquetesPage'))
+const ManifiestosPage       = lazy(() => import('@pages/admin/ManifiestosPage'))
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -76,6 +77,7 @@ export const router = createBrowserRouter([
       { path: '/admin/bitacora',                 element: withSuspense(<BitacoraPage />) },
       { path: '/admin/respaldo',                 element: withSuspense(<BackupPage />) },
       { path: '/admin/paquetes',                 element: withSuspense(<PaquetesPage />) },
+      { path: '/admin/manifiestos',              element: withSuspense(<ManifiestosPage />) },
     ],
   },
 
