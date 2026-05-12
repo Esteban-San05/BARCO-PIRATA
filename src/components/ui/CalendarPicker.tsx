@@ -13,7 +13,7 @@ import { MAX_ADVANCE_DAYS } from '@constants/index'
 interface CalendarPickerProps {
   value: string | null          // 'yyyy-MM-dd'
   onChange: (iso: string) => void
-  closedWeekday?: number        // 0=dom … 6=sáb
+  closedWeekdays?: number[]     // 0=dom … 6=sáb, puede ser varios días
   closedDates?: string[]        // fechas específicas cerradas 'yyyy-MM-dd'
   isOpen: boolean
   onClose: () => void
@@ -23,7 +23,7 @@ interface CalendarPickerProps {
 export function CalendarPicker({
   value,
   onChange,
-  closedWeekday = 1,
+  closedWeekdays = [1],
   closedDates = [],
   isOpen,
   onClose,
@@ -162,7 +162,7 @@ export function CalendarPicker({
                   const inMonth        = isSameMonth(d, viewMonth)
                   const isPast         = isBefore(d, today)
                   const isOverMax      = d > maxDate
-                  const isClosed       = d.getDay() === closedWeekday
+                  const isClosed       = closedWeekdays.includes(d.getDay())
                   const isClosedDate   = !adminMode && closedDates.includes(iso)
                   const isDisabled     = adminMode ? !inMonth : (isPast || isOverMax || isClosed || isClosedDate || !inMonth)
                   const isSelected     = value === iso

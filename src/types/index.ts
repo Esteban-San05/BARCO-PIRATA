@@ -93,11 +93,34 @@ export interface CreateReservationDto {
   notes?: string
 }
 
+export interface PackageOverrideData {
+  label: string
+  icon: string
+  adultPrice: number
+  youthPrice: number
+  description: string
+  active: boolean
+  isCustom: boolean
+}
+
+export interface PromotionItem {
+  id: string
+  name: string
+  discountType: 'percentage' | 'fixed'
+  discountValue: number
+  minPeople: number
+  active: boolean
+  startDate: string | null
+  endDate: string | null
+}
+
 export interface BusinessSettings {
-  closedWeekday: number      // 0=dom … 6=sáb
-  activeTimeSlots: string[]  // e.g. ['09:00','11:00','13:00','15:00','17:00']
-  boatCapacity: number
-  closedDates: string[]      // fechas específicas cerradas 'yyyy-MM-dd'
+  closedWeekdays:   number[]   // 0=dom … 6=sáb, puede ser vacío o varios días
+  activeTimeSlots:  string[]   // e.g. ['09:00','11:00','13:00','15:00','17:00']
+  boatCapacity:     number
+  closedDates:      string[]   // fechas específicas cerradas 'yyyy-MM-dd'
+  packageOverrides: Record<string, PackageOverrideData>
+  promotions:       PromotionItem[]
 }
 
 export interface ProcessPaymentDto {
@@ -130,7 +153,7 @@ export interface DailyReport {
   totalReservations: number
   totalPeople: number
   totalRevenue: number
-  byPackage: Record<PackageId, { count: number; revenue: number }>
+  byPackage: Record<PackageId, { count: number; people: number; revenue: number }>
   byPaymentMethod: Record<string, { count: number; revenue: number }>
   reservations: Reservation[]
 }

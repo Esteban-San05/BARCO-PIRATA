@@ -263,12 +263,12 @@
   },
   "packages": {
     "con_comida": {
-      "label": "With Food Included",
-      "description": "Tour + seafood buffet on board"
+      "label": "Dinner & Open Bar",
+      "description": "Adults: Dinner buffet + open bar · Teens: Dinner, soda & bottled water"
     },
     "solo_bebidas": {
-      "label": "Drinks Only",
-      "description": "Tour + drinks bar on board"
+      "label": "Open Bar",
+      "description": "Adults: Open bar on board · Teens: Sodas & bottled water"
     },
     "solo_paseo": {
       "label": "Tour Only",
@@ -276,7 +276,7 @@
     },
     "ninos": {
       "label": "Kids Package",
-      "description": "Water, sodas & pizza on board (ages 3–11)"
+      "description": "Bottled water, sodas & pizza on board (ages 3–11)"
     }
   },
   "confirmation": {

@@ -179,14 +179,16 @@ export default function SchedulePage() {
   const { setSlot } = useAdminHeaderSlot()
   const [saved, setSaved] = useState(false)
 
-  const [closedWeekday, setClosedWeekday] = useState(settings?.closedWeekday   ?? 1)
-  const [activeSlots,   setActiveSlots]   = useState(settings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time))
-  const [boatCapacity,  setBoatCapacity]  = useState(settings?.boatCapacity    ?? 40)
-  const [closedDates,   setClosedDates]   = useState<string[]>(settings?.closedDates ?? [])
-  const [pickingDate,   setPickingDate]   = useState(false)
-  const [newHour,       setNewHour]       = useState('')
-  const [newMinute,     setNewMinute]     = useState('')
-  const [newTimeError,  setNewTimeError]  = useState<string | null>(null)
+  const [closedWeekdays, setClosedWeekdays] = useState<number[]>(settings?.closedWeekdays ?? [1])
+  const [activeSlots,    setActiveSlots]    = useState(settings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time))
+  const [boatCapacity,   setBoatCapacity]   = useState(settings?.boatCapacity    ?? 40)
+  const [closedDates,    setClosedDates]    = useState<string[]>(settings?.closedDates ?? [])
+  const [pickingDate,    setPickingDate]    = useState(false)
+  const [newHour,        setNewHour]        = useState('')
+  const [newMinute,      setNewMinute]      = useState('')
+  const [newPeriod,      setNewPeriod]      = useState<'AM' | 'PM'>('AM')
+  const [newTimeError,   setNewTimeError]   = useState<string | null>(null)
+  const [use12h,         setUse12h]         = useState(false)
 
   const slotMeta = (time: string) => {
     const h = parseInt(time.split(':')[0], 10)
@@ -197,7 +199,7 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!settings) return
-    setClosedWeekday(settings.closedWeekday)
+    setClosedWeekdays(settings.closedWeekdays)
     setActiveSlots(settings.activeTimeSlots)
     setBoatCapacity(settings.boatCapacity)
     setClosedDates(settings.closedDates)
@@ -207,7 +209,8 @@ export default function SchedulePage() {
     const digits = val.replace(/\D/g, '').slice(0, 2)
     setNewHour(digits)
     setNewTimeError(null)
-    if (digits.length === 2 || (digits.length === 1 && parseInt(digits, 10) > 2)) {
+    const max = use12h ? 1 : 2
+    if (digits.length === 2 || (digits.length === 1 && parseInt(digits, 10) > max)) {
       document.getElementById('admin-slot-min')?.focus()
     }
   }
@@ -222,13 +225,23 @@ export default function SchedulePage() {
     const h = parseInt(newHour, 10)
     const m = parseInt(newMinute, 10)
     if (newHour === '' || newMinute === '') { setNewTimeError('Ingresa hora y minutos'); return }
-    if (isNaN(h) || h < 0 || h > 23) { setNewTimeError('Hora inválida (0–23)'); return }
     if (isNaN(m) || m < 0 || m > 59) { setNewTimeError('Minutos inválidos (0–59)'); return }
-    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+
+    let hour24: number
+    if (use12h) {
+      if (isNaN(h) || h < 1 || h > 12) { setNewTimeError('Hora inválida (1–12)'); return }
+      hour24 = newPeriod === 'AM' ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12)
+    } else {
+      if (isNaN(h) || h < 0 || h > 23) { setNewTimeError('Hora inválida (0–23)'); return }
+      hour24 = h
+    }
+
+    const time = `${String(hour24).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     if (activeSlots.includes(time)) { setNewTimeError('Este horario ya está en la lista'); return }
     setActiveSlots(prev => [...prev, time].sort())
     setNewHour('')
     setNewMinute('')
+    setNewPeriod('AM')
     setNewTimeError(null)
   }
 
@@ -246,11 +259,24 @@ export default function SchedulePage() {
     setClosedDates(prev => prev.filter(d => d !== iso))
   }
 
+  const toggleWeekday = (day: number) => {
+    setClosedWeekdays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    )
+  }
+
+  const formatTime = (time: string) => {
+    if (!use12h) return time
+    const [hStr, mStr] = time.split(':')
+    const h = parseInt(hStr, 10)
+    return `${h % 12 || 12}:${mStr} ${h >= 12 ? 'PM' : 'AM'}`
+  }
+
   const handleSave = useCallback(async () => {
-    await save({ closedWeekday, activeTimeSlots: activeSlots, boatCapacity, closedDates })
+    await save({ closedWeekdays, activeTimeSlots: activeSlots, boatCapacity, closedDates })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
-  }, [save, closedWeekday, activeSlots, boatCapacity, closedDates])
+  }, [save, closedWeekdays, activeSlots, boatCapacity, closedDates])
 
   // Enviar botón de guardar al header
   useEffect(() => {
@@ -287,8 +313,8 @@ export default function SchedulePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Section
           icon={CalendarOff}
-          title="Día de cierre semanal"
-          description="El barco no opera este día cada semana."
+          title="Días de cierre semanal"
+          description="El barco no opera estos días cada semana. Puedes seleccionar varios."
           className="h-full"
         >
           <div className="bp-weekday-grid">
@@ -296,18 +322,26 @@ export default function SchedulePage() {
               <button
                 key={value}
                 type="button"
-                onClick={() => setClosedWeekday(value)}
-                className={clsx('bp-weekday-btn', closedWeekday === value && 'closed')}
+                onClick={() => toggleWeekday(value)}
+                className={clsx('bp-weekday-btn', closedWeekdays.includes(value) && 'closed')}
               >
                 {label.slice(0, 3)}
               </button>
             ))}
           </div>
           <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
-            Día seleccionado:{' '}
-            <strong style={{ color: 'var(--text-body)' }}>
-              {WEEKDAYS.find(d => d.value === closedWeekday)?.label}
-            </strong>
+            {closedWeekdays.length === 0
+              ? 'Sin días de cierre semanal.'
+              : <>
+                  Días cerrados:{' '}
+                  <strong style={{ color: 'var(--text-body)' }}>
+                    {closedWeekdays
+                      .map(d => WEEKDAYS.find(w => w.value === d)?.label)
+                      .filter(Boolean)
+                      .join(', ')}
+                  </strong>
+                </>
+            }
           </p>
         </Section>
 
@@ -365,6 +399,30 @@ export default function SchedulePage() {
         title="Horarios activos"
         description="Agrega y elimina los horarios en que opera el barco. Debe quedar al menos uno."
       >
+        {/* Toggle 12 / 24 h */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Formato:</span>
+          <div
+            className="flex rounded-lg overflow-hidden border"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            {(['24h', '12h'] as const).map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                onClick={() => setUse12h(fmt === '12h')}
+                className="px-3 py-1 text-xs font-bold transition-colors"
+                style={{
+                  background: (fmt === '12h') === use12h ? 'var(--accent)' : 'var(--bg-surface-alt)',
+                  color:      (fmt === '12h') === use12h ? '#fff' : 'var(--text-muted)',
+                }}
+              >
+                {fmt}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 mb-5">
           {[...activeSlots].sort().map((time) => {
             const meta = slotMeta(time)
@@ -378,7 +436,7 @@ export default function SchedulePage() {
               >
                 <span className="text-2xl mb-1 select-none">{meta.icon}</span>
                 <span className="font-mono font-black text-xl tracking-tight" style={{ color: 'var(--text-title)' }}>
-                  {time}
+                  {formatTime(time)}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {meta.label}
@@ -437,6 +495,27 @@ export default function SchedulePage() {
                 style={{ color: newMinute ? 'var(--text-title)' : 'var(--text-subtle)' }}
               />
             </div>
+            {use12h && (
+              <div
+                className="flex rounded-xl overflow-hidden border-2"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                {(['AM', 'PM'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => { setNewPeriod(p); setNewTimeError(null) }}
+                    className="px-3 py-2 text-sm font-bold transition-colors"
+                    style={{
+                      background: newPeriod === p ? 'var(--accent)' : 'var(--bg-surface-alt)',
+                      color:      newPeriod === p ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
             <Button variant="accent" size="sm" onClick={addSlot}>
               <Plus className="w-4 h-4" />
               Agregar

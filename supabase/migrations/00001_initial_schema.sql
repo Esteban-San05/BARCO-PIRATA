@@ -14,7 +14,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type payment_method as enum ('efectivo', 'tarjeta');
+  create type payment_method as enum ('efectivo', 'transferencia');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -26,7 +26,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type package_id as enum ('CON_COMIDA', 'SOLO_BEBIDAS', 'SOLO_PASEO');
+  create type package_id as enum ('CON_COMIDA', 'SOLO_BEBIDAS', 'NINOS');
 exception when duplicate_object then null; end $$;
 
 -- ─── Tabla: user_profiles (extiende auth.users de Supabase) ───────────────

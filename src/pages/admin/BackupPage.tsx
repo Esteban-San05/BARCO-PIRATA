@@ -205,8 +205,11 @@ export default function BackupPage() {
         </div>
 
         {/* Aviso de datos sensibles */}
-        <div className="flex items-start gap-2 rounded-lg p-3 bg-amber-900/20 border border-amber-500/30 text-amber-300 text-xs">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div
+          className="flex items-start gap-2 rounded-lg p-3 text-xs"
+          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', color: '#b45309' }}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#d97706' }} />
           <span>
             El archivo de respaldo contiene <strong>datos personales</strong> (nombres, teléfonos y correos de clientes).
             Guárdalo en un lugar seguro y no lo compartas.
@@ -245,8 +248,11 @@ export default function BackupPage() {
         </div>
 
         {/* Aviso */}
-        <div className="flex items-start gap-2 rounded-lg p-3 bg-amber-900/20 border border-amber-500/30 text-amber-300 text-xs">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div
+          className="flex items-start gap-2 rounded-lg p-3 text-xs"
+          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', color: '#b45309' }}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#d97706' }} />
           <span>
             Esta acción hace un <strong>upsert</strong> de los datos: actualiza registros existentes
             e inserta los faltantes. No elimina datos que no estén en el respaldo.
@@ -389,7 +395,10 @@ function StatusAlert({ status }: { status: Status }) {
 
   if (status.type === 'ok') {
     return (
-      <div className="flex items-start gap-2 rounded-lg p-3 bg-green-900/20 border border-green-500/30 text-green-300 text-xs">
+      <div
+        className="flex items-start gap-2 rounded-lg p-3 text-xs"
+        style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', color: '#059669' }}
+      >
         <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
         {status.msg}
       </div>
@@ -397,7 +406,10 @@ function StatusAlert({ status }: { status: Status }) {
   }
 
   return (
-    <div className="flex items-start gap-2 rounded-lg p-3 bg-red-900/20 border border-red-500/30 text-red-300 text-xs">
+    <div
+      className="flex items-start gap-2 rounded-lg p-3 text-xs"
+      style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#dc2626' }}
+    >
       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
       {status.msg}
     </div>

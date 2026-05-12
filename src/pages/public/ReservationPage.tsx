@@ -32,17 +32,17 @@ const EMPTY_COUNTS = (): PkgCounts =>
   Object.fromEntries(PKG_IDS.map(id => [id, { adults: 0, youth: 0 }])) as PkgCounts
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function isDateClosed(iso: string, closedWeekday: number, closedDates: string[]): boolean {
+function isDateClosed(iso: string, closedWeekdays: number[], closedDates: string[]): boolean {
   const d = new Date(iso + 'T00:00:00')
-  return d.getDay() === closedWeekday || closedDates.includes(iso)
+  return closedWeekdays.includes(d.getDay()) || closedDates.includes(iso)
 }
 
-function getNextAvailableDate(fromIso: string, closedWeekday: number, closedDates: string[], maxDays: number): string {
+function getNextAvailableDate(fromIso: string, closedWeekdays: number[], closedDates: string[], maxDays: number): string {
   const base = new Date(fromIso + 'T00:00:00')
   for (let i = 1; i <= maxDays; i++) {
     const d = addDays(base, i)
     const iso = format(d, 'yyyy-MM-dd')
-    if (!isDateClosed(iso, closedWeekday, closedDates)) return iso
+    if (!isDateClosed(iso, closedWeekdays, closedDates)) return iso
   }
   return fromIso
 }
@@ -150,7 +150,7 @@ export default function ReservationPage() {
 
   useEffect(() => {
     if (!bizSettings) return
-    const cw = bizSettings.closedWeekday ?? 1
+    const cw = bizSettings.closedWeekdays ?? [1]
     const cd = bizSettings.closedDates ?? []
     const current = getValues('date') || format(new Date(), 'yyyy-MM-dd')
     if (isDateClosed(current, cw, cd)) {
@@ -199,7 +199,7 @@ export default function ReservationPage() {
   const watchedDate = watch('date')
   const watchedTime = watch('time') ?? null
 
-  const closedWeekday   = bizSettings?.closedWeekday   ?? 1
+  const closedWeekdays  = bizSettings?.closedWeekdays  ?? [1]
   const closedDates     = bizSettings?.closedDates     ?? []
   const activeTimeSlots = bizSettings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time)
 
@@ -566,7 +566,7 @@ export default function ReservationPage() {
                 <div className="grid grid-cols-7 gap-2">
                   {days.map(d => {
                     const iso      = format(d, 'yyyy-MM-dd')
-                    const isClosed = isDateClosed(iso, closedWeekday, closedDates)
+                    const isClosed = isDateClosed(iso, closedWeekdays, closedDates)
                     const isSel    = watchedDate === iso
                     const isToday  = dfIsToday(d)
                     const isTom    = isTomorrow(d)

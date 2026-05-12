@@ -1,12 +1,21 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Minus, Banknote, ArrowLeftRight } from 'lucide-react'
-import { PACKAGES, TIME_SLOTS, CHILDREN_PRICE, BOAT_CAPACITY } from '@constants/index'
+import { PACKAGES, CHILDREN_PRICE, BOAT_CAPACITY } from '@constants/index'
 import type { PackageId, PaymentMethod } from '@constants/index'
 import { formatCurrency } from '@utils/formatters'
 import { useAdminCreateReservation } from '@features/reservations/hooks/useReservations'
+import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
 import { Button } from '@components/ui/Button'
 import { format } from 'date-fns'
+
+function slotMeta(time: string) {
+  const h = parseInt(time.split(':')[0], 10)
+  if (h < 11) return { icon: '🌅', label: 'Mañana' }
+  if (h < 14) return { icon: '🌞', label: 'Mediodía' }
+  if (h < 18) return { icon: '🌤️', label: 'Tarde' }
+  return { icon: '🌇', label: 'Atardecer' }
+}
 
 // ─── Tipos (misma lógica que ReservationPage pública) ────────────────────────
 type AgeGroup  = 'adults' | 'youth'
@@ -54,6 +63,8 @@ const labelStyle  = { color: 'var(--text-muted)' }
 export default function NewReservationPage() {
   const navigate = useNavigate()
   const { mutateAsync: adminCreate, isPending } = useAdminCreateReservation()
+  const { data: settings } = useBusinessSettings()
+  const activeSlots = settings?.activeTimeSlots ?? []
 
   // Tripulación
   const [counts,   setCounts]   = useState<PkgCounts>(EMPTY_COUNTS)
@@ -69,7 +80,11 @@ export default function NewReservationPage() {
   const [contactName,  setContactName]  = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [date,         setDate]         = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [time,         setTime]         = useState(TIME_SLOTS[0].time)
+  const [time,         setTime]         = useState<string>('')
+
+  useEffect(() => {
+    if (activeSlots.length > 0 && time === '') setTime(activeSlots[0])
+  }, [activeSlots, time])
 
   // Estado de pago
   const [initialStatus, setInitialStatus] = useState<'pendiente' | 'pagada'>('pendiente')
@@ -413,11 +428,14 @@ export default function NewReservationPage() {
                 value={time} onChange={e => setTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={inputStyle}
               >
-                {TIME_SLOTS.map(slot => (
-                  <option key={slot.time} value={slot.time}>
-                    {slot.icon} {slot.label} — {slot.time}
-                  </option>
-                ))}
+                {activeSlots.map(t => {
+                  const meta = slotMeta(t)
+                  return (
+                    <option key={t} value={t}>
+                      {meta.icon} {meta.label} — {t}
+                    </option>
+                  )
+                })}
               </select>
             </div>
           </div>

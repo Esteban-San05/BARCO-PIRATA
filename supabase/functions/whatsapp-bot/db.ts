@@ -25,7 +25,7 @@ export interface Reservation {
 export type ReservationStatus = 'pendiente' | 'confirmada' | 'pagada' | 'cancelada'
 
 export interface BusinessSettings {
-  closed_weekday: number
+  closed_weekdays: number[]
   active_time_slots: string[]
   boat_capacity: number
   closed_dates: string[]

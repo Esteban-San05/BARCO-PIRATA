@@ -50,7 +50,7 @@ export interface RangeReport {
   revenueAdults: number
   revenueYouth: number
   revenueChildren: number
-  byPackage: Record<PackageId, { count: number; revenue: number }>
+  byPackage: Record<PackageId, { count: number; people: number; revenue: number }>
   byPaymentMethod: Record<string, { count: number; revenue: number }>
   /** Serie temporal agrupada según `granularity` — cada punto listo para graficar */
   series: Array<{
@@ -155,9 +155,9 @@ export const reportService = {
       totalPeople: reservations.reduce((s, r) => s + r.totalPassengers, 0),
       totalRevenue: reservations.reduce((s, r) => s + r.total, 0),
       byPackage: {
-        CON_COMIDA:   { count: 0, revenue: 0 },
-        SOLO_BEBIDAS: { count: 0, revenue: 0 },
-        NINOS:        { count: 0, revenue: 0 },
+        CON_COMIDA:   { count: 0, people: 0, revenue: 0 },
+        SOLO_BEBIDAS: { count: 0, people: 0, revenue: 0 },
+        NINOS:        { count: 0, people: 0, revenue: 0 },
       },
       byPaymentMethod: {},
       reservations,
@@ -170,11 +170,13 @@ export const reportService = {
         for (const item of r.packageBreakdown) {
           if (item.packageId in report.byPackage) {
             report.byPackage[item.packageId].count++
+            report.byPackage[item.packageId].people += item.adults + item.youth + (item.children ?? 0)
             report.byPackage[item.packageId].revenue += item.total
           }
         }
       } else if (r.packageId in report.byPackage) {
         report.byPackage[r.packageId].count++
+        report.byPackage[r.packageId].people += r.adults + r.youth + r.children
         report.byPackage[r.packageId].revenue += r.total
       }
 
@@ -209,9 +211,9 @@ export const reportService = {
     const reservations          = all.filter((r) => r.status !== 'cancelada')
 
     const byPackage: RangeReport['byPackage'] = {
-      CON_COMIDA:   { count: 0, revenue: 0 },
-      SOLO_BEBIDAS: { count: 0, revenue: 0 },
-      NINOS:        { count: 0, revenue: 0 },
+      CON_COMIDA:   { count: 0, people: 0, revenue: 0 },
+      SOLO_BEBIDAS: { count: 0, people: 0, revenue: 0 },
+      NINOS:        { count: 0, people: 0, revenue: 0 },
     }
     const byPaymentMethod: RangeReport['byPaymentMethod'] = {}
     const bucketsMap = new Map<string, RangeReport['series'][number]>()
@@ -226,11 +228,13 @@ export const reportService = {
         for (const item of r.packageBreakdown) {
           if (item.packageId in byPackage) {
             byPackage[item.packageId].count++
+            byPackage[item.packageId].people += item.adults + item.youth + (item.children ?? 0)
             byPackage[item.packageId].revenue += item.total
           }
         }
       } else if (r.packageId in byPackage) {
         byPackage[r.packageId].count++
+        byPackage[r.packageId].people += r.adults + r.youth + r.children
         byPackage[r.packageId].revenue += r.total
       }
 

@@ -263,12 +263,12 @@
   },
   "packages": {
     "con_comida": {
-      "label": "Con Comida Incluida",
-      "description": "Paseo + cena a bordo"
+      "label": "Cena y Barra Libre",
+      "description": "Adultos: Cena buffet + barra libre · Adolescentes: Cena, soda y agua embotellada"
     },
     "solo_bebidas": {
-      "label": "Solo Bebidas",
-      "description": "Paseo + barra de bebidas a bordo"
+      "label": "Barra Libre",
+      "description": "Adultos: Barra libre a bordo · Adolescentes: Sodas y agua embotellada"
     },
     "solo_paseo": {
       "label": "Solo Paseo",
@@ -276,7 +276,7 @@
     },
     "ninos": {
       "label": "Paquete Niños",
-      "description": "Agua, sodas y pizza a bordo (3–11 años)"
+      "description": "Agua embotellada, sodas y pizza a bordo (3–11 años)"
     }
   },
   "confirmation": {

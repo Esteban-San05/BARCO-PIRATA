@@ -80,18 +80,18 @@ export default function ReportsPage() {
 
   const packageDonut = useMemo(() => {
     if (!report) return []
-    return (Object.keys(report.byPackage) as PackageId[])
-      .map((k) => {
-        const pkg = PACKAGES[k]
-        if (!pkg) return null
-        const s = report.byPackage[k]
-        return {
-          label: pkg.label,
-          value: s.count,
-          color: PACKAGE_COLORS[k] ?? '#6B7280',
-        }
-      })
-      .filter((d): d is NonNullable<typeof d> => d !== null && d.value > 0)
+    const entries: { label: string; value: number; color: string }[] = []
+    for (const k of Object.keys(report.byPackage) as PackageId[]) {
+      const pkg = PACKAGES[k]
+      const s   = report.byPackage[k]
+      if (pkg && s.people > 0) {
+        entries.push({ label: String(pkg.label), value: s.people, color: PACKAGE_COLORS[k] ?? '#6B7280' })
+      }
+    }
+    if (report.totalBabies > 0) {
+      entries.push({ label: 'Bebés (gratis)' as string, value: report.totalBabies, color: '#8B5CF6' })
+    }
+    return entries
   }, [report])
 
   const paymentDonut = useMemo(() => {
@@ -304,9 +304,9 @@ export default function ReportsPage() {
               {packageDonut.length ? (
                 <DonutChart
                   data={packageDonut}
-                  centerValue={String(report.totalReservations)}
-                  centerLabel="Reservas"
-                  valueFormatter={(v) => `${v} reserv.`}
+                  centerValue={String(report.totalPeople)}
+                  centerLabel="Personas"
+                  valueFormatter={(v) => `${v} personas`}
                 />
               ) : (
                 <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>Sin datos en el período.</p>
@@ -349,8 +349,8 @@ export default function ReportsPage() {
                   const pkg = PACKAGES[pkgId]
                   if (!pkg) return null
                   const stats = report.byPackage[pkgId]
-                  const pct = report.totalReservations
-                    ? Math.round((stats.count / report.totalReservations) * 100)
+                  const pct = report.totalPeople
+                    ? Math.round((stats.people / report.totalPeople) * 100)
                     : 0
                   return (
                     <div key={pkgId}>
@@ -359,7 +359,7 @@ export default function ReportsPage() {
                           <span className="mr-1.5">{pkg.icon}</span>{pkg.label}
                         </span>
                         <span className="tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                          <span className="font-semibold" style={{ color: 'var(--text-title)' }}>{stats.count}</span> reserv. ·&nbsp;
+                          <span className="font-semibold" style={{ color: 'var(--text-title)' }}>{stats.people}</span> personas ·&nbsp;
                           <span className="font-semibold text-gold-600">{formatCurrency(stats.revenue)}</span>
                         </span>
                       </div>
@@ -373,6 +373,31 @@ export default function ReportsPage() {
                     </div>
                   )
                 })}
+                {report.totalBabies > 0 && (() => {
+                  const pct = report.totalPeople
+                    ? Math.round((report.totalBabies / report.totalPeople) * 100)
+                    : 0
+                  return (
+                    <div>
+                      <div className="flex justify-between items-baseline text-sm mb-1.5">
+                        <span className="font-semibold" style={{ color: 'var(--text-body)' }}>
+                          <span className="mr-1.5">👶</span>Bebés
+                        </span>
+                        <span className="tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          <span className="font-semibold" style={{ color: '#8B5CF6' }}>{report.totalBabies}</span> personas ·&nbsp;
+                          <span className="font-semibold" style={{ color: 'var(--text-muted)' }}>Gratis</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-surface-alt)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #A78BFA, #8B5CF6)' }}
+                        />
+                      </div>
+                      <p className="text-[11px] mt-0.5 text-right" style={{ color: 'var(--text-subtle)' }}>{pct}% del total</p>
+                    </div>
+                  )
+                })()}
               </div>
             </section>
           </div>
