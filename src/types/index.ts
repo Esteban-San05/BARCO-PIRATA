@@ -3,6 +3,20 @@ import type { PackageId, PaymentMethod, ReservationStatus } from '@constants/ind
 // Re-exports para que los consumidores solo importen desde @app-types/index
 export type { PackageId, PaymentMethod, ReservationStatus }
 
+// ─── Desglose por paquete ─────────────────────────────────────────────────
+
+export interface PackageBreakdownItem {
+  packageId: PackageId
+  adults: number
+  adultPrice: number
+  youth: number
+  youthPrice: number
+  /** Solo se usa cuando packageId === 'NINOS' */
+  children?: number
+  childrenPrice?: number
+  total: number
+}
+
 // ─── Entidades de dominio ─────────────────────────────────────────────────
 
 export interface Reservation {
@@ -23,6 +37,7 @@ export interface Reservation {
   youthCost: number
   childrenCost: number
   packageId: PackageId
+  packageBreakdown: PackageBreakdownItem[] | null
   serviceType: 'individual' | 'grupal'
   subtotal: number
   discount: number
@@ -73,6 +88,7 @@ export interface CreateReservationDto {
   youthCost: number
   childrenCost: number
   packageId: PackageId
+  packageBreakdown?: PackageBreakdownItem[]
   serviceType: 'individual' | 'grupal'
   notes?: string
 }

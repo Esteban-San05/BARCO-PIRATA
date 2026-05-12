@@ -228,13 +228,35 @@ export default function ReservationPage() {
       return
     }
     try {
+      const pkgBreakdownItems: import('@app-types/index').PackageBreakdownItem[] = PKG_IDS
+        .filter(id => id !== 'NINOS')
+        .map(id => {
+          const p = PACKAGES[id]
+          const c = counts[id]
+          const total = c.adults * p.adultPrice + c.youth * p.youthPrice
+          if (c.adults === 0 && c.youth === 0) return null
+          return { packageId: id, adults: c.adults, adultPrice: p.adultPrice, youth: c.youth, youthPrice: p.youthPrice, total }
+        })
+        .filter(Boolean) as import('@app-types/index').PackageBreakdownItem[]
+
+      if (children > 0) {
+        pkgBreakdownItems.push({
+          packageId: 'NINOS',
+          adults: 0, adultPrice: 0,
+          youth: 0,  youthPrice: 0,
+          children,  childrenPrice: CHILDREN_PRICE,
+          total: childrenCost,
+        })
+      }
+
       const reservation = await createReservation({
         ...values,
-        packageId:    dominantPkg,
-        serviceType:  numberOfPeople >= 10 ? 'grupal' : 'individual',
-        notes:        values.notes || undefined,
-        adults:       totalAdults,
-        youth:        totalYouth,
+        packageId:        dominantPkg,
+        packageBreakdown: pkgBreakdownItems,
+        serviceType:      numberOfPeople >= 10 ? 'grupal' : 'individual',
+        notes:            values.notes || undefined,
+        adults:           totalAdults,
+        youth:            totalYouth,
         children,
         babies,
         adultsCost:   PKG_IDS.reduce((s, id) => s + PACKAGES[id].adultPrice * counts[id].adults, 0),

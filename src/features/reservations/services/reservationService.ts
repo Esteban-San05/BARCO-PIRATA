@@ -1,7 +1,6 @@
 import { supabase } from '@lib/supabase'
-import type { Reservation, CreateReservationDto, PaginatedResponse } from '@app-types/index'
+import type { Reservation, CreateReservationDto, PackageBreakdownItem, PaginatedResponse } from '@app-types/index'
 import { sanitizeObject, sanitizePhone } from '@utils/security'
-import { calculatePrice } from '@utils/pricing'
 import { PACKAGES, CHILDREN_PRICE } from '@constants/index'
 import type { PackageId, PaymentMethod } from '@constants/index'
 
@@ -23,6 +22,7 @@ const mapRow = (row: Record<string, unknown>): Reservation => ({
   youthCost:    (row.youth_cost    as number) ?? 0,
   childrenCost: (row.children_cost as number) ?? 0,
   packageId: row.package_id as PackageId,
+  packageBreakdown: (row.package_breakdown as PackageBreakdownItem[] | null) ?? null,
   serviceType: row.service_type as 'individual' | 'grupal',
   subtotal: row.subtotal as number,
   discount: row.discount as number,
@@ -47,32 +47,35 @@ export const reservationService = {
       throw new Error('Has excedido el límite de reservaciones. Intenta de nuevo en una hora.')
     }
 
-    const pricing = calculatePrice(clean.packageId as PackageId, clean.numberOfPeople)
+    const adultsCost   = clean.adultsCost   ?? 0
+    const youthCost    = clean.youthCost    ?? 0
+    const childrenCost = clean.childrenCost ?? 0
+    const subtotal     = adultsCost + youthCost + childrenCost
 
     const { data, error } = await supabase
       .from('reservations')
       .insert({
-        contact_name:     clean.contactName,
-        contact_phone:    sanitizePhone(clean.contactPhone),
-        contact_email:    clean.contactEmail?.trim().toLowerCase() ?? null,
-        date:             clean.date,
-        time:             clean.time,
-        number_of_people: clean.numberOfPeople,
-        // Desglose por grupo de edad
-        adults:           clean.adults       ?? clean.numberOfPeople,
-        youth:            clean.youth        ?? 0,
-        children:         clean.children     ?? 0,
-        babies:           clean.babies       ?? 0,
-        adults_cost:      clean.adultsCost   ?? pricing.subtotal,
-        youth_cost:       clean.youthCost    ?? 0,
-        children_cost:    clean.childrenCost ?? 0,
-        package_id:       clean.packageId,
-        service_type:     clean.numberOfPeople >= 10 ? 'grupal' : 'individual',
-        subtotal:         pricing.subtotal,
-        discount:         pricing.discount,
-        total:            pricing.total,
-        status:           'pendiente',
-        notes:            clean.notes ?? null,
+        contact_name:      clean.contactName,
+        contact_phone:     sanitizePhone(clean.contactPhone),
+        contact_email:     clean.contactEmail?.trim().toLowerCase() ?? null,
+        date:              clean.date,
+        time:              clean.time,
+        number_of_people:  clean.numberOfPeople,
+        adults:            clean.adults   ?? clean.numberOfPeople,
+        youth:             clean.youth    ?? 0,
+        children:          clean.children ?? 0,
+        babies:            clean.babies   ?? 0,
+        adults_cost:       adultsCost,
+        youth_cost:        youthCost,
+        children_cost:     childrenCost,
+        package_id:        clean.packageId,
+        package_breakdown: clean.packageBreakdown?.length ? clean.packageBreakdown : null,
+        service_type:      clean.numberOfPeople >= 10 ? 'grupal' : 'individual',
+        subtotal,
+        discount:          0,
+        total:             subtotal,
+        status:            'pendiente',
+        notes:             clean.notes ?? null,
       })
       .select()
       .single()
@@ -151,6 +154,7 @@ export const reservationService = {
       date: string
       time: string
       packageId: PackageId
+      packageBreakdown?: PackageBreakdownItem[]
       adults: number
       youth: number
       children: number
@@ -167,21 +171,22 @@ export const reservationService = {
     const { data, error } = await supabase
       .from('reservations')
       .update({
-        date:             dto.date,
-        time:             dto.time,
-        package_id:       dto.packageId,
-        adults:           dto.adults,
-        youth:            dto.youth,
-        children:         dto.children,
-        babies:           dto.babies,
-        adults_cost:      dto.adultsCost,
-        youth_cost:       dto.youthCost,
-        children_cost:    dto.childrenCost,
-        number_of_people: dto.numberOfPeople,
-        subtotal:         dto.subtotal,
-        discount:         0,
-        total:            dto.total,
-        service_type:     dto.serviceType,
+        date:              dto.date,
+        time:              dto.time,
+        package_id:        dto.packageId,
+        package_breakdown: dto.packageBreakdown?.length ? dto.packageBreakdown : null,
+        adults:            dto.adults,
+        youth:             dto.youth,
+        children:          dto.children,
+        babies:            dto.babies,
+        adults_cost:       dto.adultsCost,
+        youth_cost:        dto.youthCost,
+        children_cost:     dto.childrenCost,
+        number_of_people:  dto.numberOfPeople,
+        subtotal:          dto.subtotal,
+        discount:          0,
+        total:             dto.total,
+        service_type:      dto.serviceType,
       })
       .eq('id', id)
       .select()
@@ -217,27 +222,28 @@ export const reservationService = {
     const { data, error } = await supabase
       .from('reservations')
       .insert({
-        contact_name:     clean.contactName,
-        contact_phone:    sanitizePhone(clean.contactPhone),
-        contact_email:    clean.contactEmail?.trim().toLowerCase() ?? null,
-        date:             clean.date,
-        time:             clean.time,
-        number_of_people: totalPax,
+        contact_name:      clean.contactName,
+        contact_phone:     sanitizePhone(clean.contactPhone),
+        contact_email:     clean.contactEmail?.trim().toLowerCase() ?? null,
+        date:              clean.date,
+        time:              clean.time,
+        number_of_people:  totalPax,
         adults,
         youth,
         children,
         babies,
-        adults_cost:      adultsCost,
-        youth_cost:       youthCost,
-        children_cost:    childrenCost,
-        package_id:       clean.packageId,
-        service_type:     totalPax >= 10 ? 'grupal' : 'individual',
+        adults_cost:       adultsCost,
+        youth_cost:        youthCost,
+        children_cost:     childrenCost,
+        package_id:        clean.packageId,
+        package_breakdown: clean.packageBreakdown?.length ? clean.packageBreakdown : null,
+        service_type:      totalPax >= 10 ? 'grupal' : 'individual',
         subtotal,
-        discount:         0,
-        total:            subtotal,
+        discount:          0,
+        total:             subtotal,
         status,
-        payment_method:   status === 'pagada' ? (clean.paymentMethod ?? null) : null,
-        notes:            clean.notes ?? null,
+        payment_method:    status === 'pagada' ? (clean.paymentMethod ?? null) : null,
+        notes:             clean.notes ?? null,
       })
       .select()
       .single()

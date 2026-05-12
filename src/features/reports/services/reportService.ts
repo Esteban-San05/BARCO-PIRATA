@@ -87,6 +87,7 @@ function rowToReservation(r: Record<string, unknown>): Reservation {
     youthCost: (r.youth_cost as number) ?? 0,
     childrenCost: (r.children_cost as number) ?? 0,
     packageId: r.package_id as Reservation['packageId'],
+    packageBreakdown: (r.package_breakdown as Reservation['packageBreakdown']) ?? null,
     serviceType: r.service_type as Reservation['serviceType'],
     subtotal: r.subtotal as number,
     discount: r.discount as number,
@@ -98,6 +99,16 @@ function rowToReservation(r: Record<string, unknown>): Reservation {
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   }
+}
+
+/** Etiqueta legible de paquete(s) para una reservación. */
+function pkgLabel(r: Reservation): string {
+  if (r.packageBreakdown?.length) {
+    return r.packageBreakdown
+      .map(item => item.packageId.replace(/_/g, ' '))
+      .join(' + ')
+  }
+  return pkgLabel(r)
 }
 
 /** Devuelve la "clave" y el "label" legible según la granularidad. */
@@ -154,10 +165,19 @@ export const reportService = {
 
     for (const r of reservations) {
       const method = r.paymentMethod ?? 'sin_pago'
-      if (r.packageId in report.byPackage) {
+
+      if (r.packageBreakdown?.length) {
+        for (const item of r.packageBreakdown) {
+          if (item.packageId in report.byPackage) {
+            report.byPackage[item.packageId].count++
+            report.byPackage[item.packageId].revenue += item.total
+          }
+        }
+      } else if (r.packageId in report.byPackage) {
         report.byPackage[r.packageId].count++
         report.byPackage[r.packageId].revenue += r.total
       }
+
       if (!report.byPaymentMethod[method]) report.byPaymentMethod[method] = { count: 0, revenue: 0 }
       report.byPaymentMethod[method].count++
       report.byPaymentMethod[method].revenue += r.total
@@ -202,10 +222,18 @@ export const reportService = {
     for (const r of reservations) {
       const method = r.paymentMethod ?? 'sin_pago'
 
-      if (r.packageId in byPackage) {
+      if (r.packageBreakdown?.length) {
+        for (const item of r.packageBreakdown) {
+          if (item.packageId in byPackage) {
+            byPackage[item.packageId].count++
+            byPackage[item.packageId].revenue += item.total
+          }
+        }
+      } else if (r.packageId in byPackage) {
         byPackage[r.packageId].count++
         byPackage[r.packageId].revenue += r.total
       }
+
       if (!byPaymentMethod[method]) byPaymentMethod[method] = { count: 0, revenue: 0 }
       byPaymentMethod[method].count++
       byPaymentMethod[method].revenue += r.total
@@ -260,7 +288,7 @@ export const reportService = {
       'Nombre': r.contactName,
       'Teléfono': r.contactPhone,
       'Hora': r.time,
-      'Paquete': r.packageId.replace(/_/g, ' '),
+      'Paquete': pkgLabel(r),
       'Adultos': r.adults,
       'Costo Adultos': r.adultsCost,
       'Adolescentes': r.youth,
@@ -290,7 +318,7 @@ export const reportService = {
       'Hora': r.time,
       'Nombre': r.contactName,
       'Teléfono': r.contactPhone,
-      'Paquete': r.packageId.replace(/_/g, ' '),
+      'Paquete': pkgLabel(r),
       'Adultos': r.adults,
       'Costo Adultos': r.adultsCost,
       'Adolescentes': r.youth,
@@ -395,7 +423,7 @@ export const reportService = {
           String(r.children),
           String(r.babies),
           String(r.totalPassengers),
-          r.packageId.replace(/_/g, ' '),
+          pkgLabel(r),
           formatCurrency(r.total),
           r.status,
           r.paymentMethod ?? '—',
@@ -553,7 +581,7 @@ export const reportService = {
         body: report.reservations.map((r) => [
           formatDate(r.date), r.time, r.contactName,
           String(r.adults), String(r.youth), String(r.children), String(r.babies),
-          r.packageId.replace(/_/g, ' '),
+          pkgLabel(r),
           formatCurrency(r.total), r.status, r.paymentMethod ?? '—',
         ]),
         styles:             { fontSize: 7.5, cellPadding: 2, textColor: C_INK, lineColor: C_LINE, lineWidth: 0.15 },

@@ -76,9 +76,11 @@ export default function ReservationsPage() {
       'Estado', 'Método de Pago',
     ]
     const rows = filtered.map(r => {
-      const pkg = PACKAGES[r.packageId as PackageId]
+      const pkgLabel = r.packageBreakdown?.length
+        ? r.packageBreakdown.map(item => PACKAGES[item.packageId as PackageId]?.label ?? item.packageId).join(' + ')
+        : (PACKAGES[r.packageId as PackageId]?.label ?? r.packageId)
       return [
-        r.contactName, r.contactPhone ?? '', r.time, pkg?.label ?? r.packageId,
+        r.contactName, r.contactPhone ?? '', r.time, pkgLabel,
         r.adults, r.adultsCost,
         r.youth, r.youthCost,
         r.children, r.childrenCost,
@@ -268,7 +270,21 @@ export default function ReservationsPage() {
                         )}
                       </td>
                       <td className="hidden md:table-cell px-4 py-4" style={{ color: 'var(--text-body)' }}>
-                        {pkg ? `${pkg.icon} ${pkg.label}` : r.packageId.replace(/_/g, ' ')}
+                        {r.packageBreakdown?.length
+                          ? (
+                            <div className="flex flex-col gap-0.5">
+                              {r.packageBreakdown.map(item => {
+                                const p = PACKAGES[item.packageId as PackageId]
+                                return (
+                                  <span key={item.packageId} className="text-xs">
+                                    {p?.icon} {p?.label ?? item.packageId}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          )
+                          : pkg ? `${pkg.icon} ${pkg.label}` : r.packageId.replace(/_/g, ' ')
+                        }
                       </td>
                       <td className="hidden md:table-cell px-4 py-4 font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.subtotal)}</td>
                       <td className="hidden lg:table-cell px-4 py-4 font-semibold" style={{ color: r.discount > 0 ? '#F87171' : 'var(--text-muted)' }}>

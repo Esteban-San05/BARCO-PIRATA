@@ -17,11 +17,23 @@ const PKG_IDS = Object.keys(PACKAGES) as PackageId[]
 const EMPTY_COUNTS = (): PkgCounts =>
   Object.fromEntries(PKG_IDS.map(id => [id, { adults: 0, youth: 0 }])) as PkgCounts
 
-// Inicializa los contadores desde una reservación existente:
-// todos los adultos/youth bajo el packageId almacenado (paquete dominante).
-const countsFromReservation = (pkgId: PackageId, adults: number, youth: number): PkgCounts => {
+// Inicializa los contadores desde una reservación existente.
+// Si existe package_breakdown lo usa; si no, pone todo bajo el paquete dominante.
+const countsFromReservation = (
+  pkgId: PackageId,
+  adults: number,
+  youth: number,
+  breakdown: import('@app-types/index').PackageBreakdownItem[] | null,
+): PkgCounts => {
   const c = EMPTY_COUNTS()
-  if (pkgId in c) {
+  if (breakdown?.length) {
+    for (const item of breakdown) {
+      if (item.packageId in c) {
+        c[item.packageId].adults = item.adults
+        c[item.packageId].youth  = item.youth
+      }
+    }
+  } else if (pkgId in c) {
     c[pkgId].adults = adults
     c[pkgId].youth  = youth
   }
@@ -77,6 +89,7 @@ export default function EditReservationPage() {
       reservation.packageId as PackageId,
       reservation.adults,
       reservation.youth,
+      reservation.packageBreakdown ?? null,
     ))
     setChildren(reservation.children)
     setBabies(reservation.babies)
@@ -125,22 +138,44 @@ export default function EditReservationPage() {
     if (!time)           return setError('El horario es requerido.')
     if (totalAdults === 0) return setError('Se requiere al menos 1 adulto.')
 
+    const pkgBreakdownItems: import('@app-types/index').PackageBreakdownItem[] = PKG_IDS
+      .filter(id => id !== 'NINOS')
+      .map(id => {
+        const p = PACKAGES[id]
+        const c = counts[id]
+        const t = c.adults * p.adultPrice + c.youth * p.youthPrice
+        if (c.adults === 0 && c.youth === 0) return null
+        return { packageId: id, adults: c.adults, adultPrice: p.adultPrice, youth: c.youth, youthPrice: p.youthPrice, total: t }
+      })
+      .filter(Boolean) as import('@app-types/index').PackageBreakdownItem[]
+
+    if (children > 0) {
+      pkgBreakdownItems.push({
+        packageId: 'NINOS',
+        adults: 0, adultPrice: 0,
+        youth: 0,  youthPrice: 0,
+        children,  childrenPrice: CHILDREN_PRICE,
+        total: childrenCost,
+      })
+    }
+
     try {
       await updateReservation({
         id: reservationId!,
         date, time,
-        packageId:     dominantPkg,
-        adults:        totalAdults,
-        youth:         totalYouth,
+        packageId:        dominantPkg,
+        packageBreakdown: pkgBreakdownItems,
+        adults:           totalAdults,
+        youth:            totalYouth,
         children,
         babies,
         adultsCost,
         youthCost,
         childrenCost,
         numberOfPeople,
-        subtotal:      total,
+        subtotal:         total,
         total,
-        serviceType:   numberOfPeople >= 10 ? 'grupal' : 'individual',
+        serviceType:      numberOfPeople >= 10 ? 'grupal' : 'individual',
       })
       navigate(`/admin/venta/${reservationId}`)
     } catch (e) {

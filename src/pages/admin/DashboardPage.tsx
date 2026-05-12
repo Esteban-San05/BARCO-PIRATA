@@ -286,7 +286,13 @@ export default function DashboardPage() {
                         )}
                       </td>
                       <td className="hidden md:table-cell px-5 py-4" style={{ color: 'var(--text-body)' }}>
-                        {pkg ? `${pkg.icon} ${pkg.label}` : r.packageId}
+                        {r.packageBreakdown?.length
+                          ? r.packageBreakdown.map(item => {
+                              const p = PACKAGES[item.packageId as PackageId]
+                              return `${p?.icon ?? ''} ${p?.label ?? item.packageId}`
+                            }).join(' · ')
+                          : pkg ? `${pkg.icon} ${pkg.label}` : r.packageId
+                        }
                       </td>
                       <td className="px-5 py-4 font-bold" style={{ color: 'var(--accent)' }}>{formatCurrency(r.total)}</td>
                       <td className="px-5 py-4"><StatusBadge status={r.status} /></td>

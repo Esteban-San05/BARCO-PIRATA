@@ -114,24 +114,46 @@ export default function NewReservationPage() {
     if (!contactPhone.trim()) return setError('El teléfono es requerido.')
     if (totalAdults === 0)    return setError('Se requiere al menos 1 adulto para abordar el barco.')
 
+    const pkgBreakdownItems: import('@app-types/index').PackageBreakdownItem[] = PKG_IDS
+      .filter(id => id !== 'NINOS')
+      .map(id => {
+        const p = PACKAGES[id]
+        const c = counts[id]
+        const total = c.adults * p.adultPrice + c.youth * p.youthPrice
+        if (c.adults === 0 && c.youth === 0) return null
+        return { packageId: id, adults: c.adults, adultPrice: p.adultPrice, youth: c.youth, youthPrice: p.youthPrice, total }
+      })
+      .filter(Boolean) as import('@app-types/index').PackageBreakdownItem[]
+
+    if (children > 0) {
+      pkgBreakdownItems.push({
+        packageId: 'NINOS',
+        adults: 0, adultPrice: 0,
+        youth: 0,  youthPrice: 0,
+        children,  childrenPrice: CHILDREN_PRICE,
+        total: childrenCost,
+      })
+    }
+
     try {
       const reservation = await adminCreate({
-        contactName:   contactName.trim(),
-        contactPhone:  contactPhone.trim(),
+        contactName:      contactName.trim(),
+        contactPhone:     contactPhone.trim(),
         date, time,
-        packageId:     dominantPkg,
+        packageId:        dominantPkg,
+        packageBreakdown: pkgBreakdownItems,
         numberOfPeople,
-        adults:        totalAdults,
-        youth:         totalYouth,
+        adults:           totalAdults,
+        youth:            totalYouth,
         children,
         babies,
         adultsCost,
         youthCost,
         childrenCost,
-        serviceType:   numberOfPeople >= 10 ? 'grupal' : 'individual',
+        serviceType:      numberOfPeople >= 10 ? 'grupal' : 'individual',
         initialStatus,
-        paymentMethod: initialStatus === 'pagada' ? paymentMethod : undefined,
-        notes:         notes.trim() || undefined,
+        paymentMethod:    initialStatus === 'pagada' ? paymentMethod : undefined,
+        notes:            notes.trim() || undefined,
       })
       navigate(`/admin/venta/${reservation.id}`)
     } catch (e) {
