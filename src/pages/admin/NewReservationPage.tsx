@@ -1,13 +1,16 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Minus, Banknote, ArrowLeftRight } from 'lucide-react'
+import { ArrowLeft, Plus, Minus, Banknote, ArrowLeftRight, CalendarDays } from 'lucide-react'
 import { PACKAGES, CHILDREN_PRICE, BOAT_CAPACITY } from '@constants/index'
 import type { PackageId, PaymentMethod } from '@constants/index'
 import { formatCurrency } from '@utils/formatters'
+import { isDateClosed, getNearestAvailableDate } from '@utils/availability'
 import { useAdminCreateReservation } from '@features/reservations/hooks/useReservations'
 import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
 import { Button } from '@components/ui/Button'
-import { format } from 'date-fns'
+import { CalendarPicker } from '@components/ui/CalendarPicker'
+import { format, parse } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 function slotMeta(time: string) {
   const h = parseInt(time.split(':')[0], 10)
@@ -64,7 +67,9 @@ export default function NewReservationPage() {
   const navigate = useNavigate()
   const { mutateAsync: adminCreate, isPending } = useAdminCreateReservation()
   const { data: settings } = useBusinessSettings()
-  const activeSlots = settings?.activeTimeSlots ?? []
+  const activeSlots    = settings?.activeTimeSlots ?? []
+  const closedWeekdays = settings?.closedWeekdays  ?? [1]
+  const closedDates    = settings?.closedDates     ?? []
 
   // Tripulación
   const [counts,   setCounts]   = useState<PkgCounts>(EMPTY_COUNTS)
@@ -81,10 +86,24 @@ export default function NewReservationPage() {
   const [contactPhone, setContactPhone] = useState('')
   const [date,         setDate]         = useState(format(new Date(), 'yyyy-MM-dd'))
   const [time,         setTime]         = useState<string>('')
+  const [calOpen,      setCalOpen]      = useState(false)
 
+  // Mantiene `time` siempre en un horario activo válido (evita enviar un slot
+  // que el negocio ya desactivó y que el backend rechazaría).
   useEffect(() => {
-    if (activeSlots.length > 0 && time === '') setTime(activeSlots[0])
+    if (activeSlots.length > 0 && !activeSlots.includes(time)) setTime(activeSlots[0])
   }, [activeSlots, time])
+
+  // Ubica la fecha en el día con paseos más cercano cuando el día actual
+  // está cerrado (p. ej. al abrir la pantalla en un día sin servicio).
+  const closedWeekdaysKey = closedWeekdays.join(',')
+  const closedDatesKey    = closedDates.join(',')
+  useEffect(() => {
+    setDate(d => isDateClosed(d, closedWeekdays, closedDates)
+      ? getNearestAvailableDate(d, closedWeekdays, closedDates)
+      : d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closedWeekdaysKey, closedDatesKey])
 
   // Estado de pago
   const [initialStatus, setInitialStatus] = useState<'pendiente' | 'pagada'>('pendiente')
@@ -417,9 +436,25 @@ export default function NewReservationPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Fecha *</label>
-              <input
-                type="date" value={date} onChange={e => setDate(e.target.value)} required
-                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={inputStyle}
+              <button
+                type="button" onClick={() => setCalOpen(true)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-left focus:outline-none"
+                style={inputStyle}
+              >
+                <CalendarDays className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+                <span className="capitalize truncate">
+                  {format(parse(date, 'yyyy-MM-dd', new Date()), "EEE d 'de' MMMM yyyy", { locale: es })}
+                </span>
+              </button>
+              <CalendarPicker
+                value={date}
+                onChange={setDate}
+                closedWeekdays={closedWeekdays}
+                closedDates={closedDates}
+                isOpen={calOpen}
+                onClose={() => setCalOpen(false)}
+                adminMode
+                enforceClosedDays
               />
             </div>
             <div>

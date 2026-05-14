@@ -18,6 +18,7 @@ interface CalendarPickerProps {
   isOpen: boolean
   onClose: () => void
   adminMode?: boolean           // sin restricciones de fecha
+  enforceClosedDays?: boolean   // aun en adminMode, bloquea días sin paseos
 }
 
 export function CalendarPicker({
@@ -28,6 +29,7 @@ export function CalendarPicker({
   isOpen,
   onClose,
   adminMode = false,
+  enforceClosedDays = false,
 }: CalendarPickerProps) {
   const { i18n } = useTranslation()
   const dfLocale  = i18n.resolvedLanguage === 'en' ? enUS : es
@@ -163,8 +165,11 @@ export function CalendarPicker({
                   const isPast         = isBefore(d, today)
                   const isOverMax      = d > maxDate
                   const isClosed       = closedWeekdays.includes(d.getDay())
-                  const isClosedDate   = !adminMode && closedDates.includes(iso)
-                  const isDisabled     = adminMode ? !inMonth : (isPast || isOverMax || isClosed || isClosedDate || !inMonth)
+                  const isClosedDate   = closedDates.includes(iso)
+                  const closedBlocked  = (!adminMode || enforceClosedDays) && (isClosed || isClosedDate)
+                  const isDisabled     = adminMode
+                    ? (!inMonth || closedBlocked)
+                    : (isPast || isOverMax || isClosed || isClosedDate || !inMonth)
                   const isSelected     = value === iso
                   const isToday        = isSameDay(d, today)
 
@@ -191,11 +196,8 @@ export function CalendarPicker({
                         // Deshabilitado (pasado / cerrado / fuera de rango)
                         isDisabled && inMonth &&
                           'text-navy-200 cursor-not-allowed',
-                        // Cerrado (día semanal) con tachado
-                        isClosed && inMonth &&
-                          'line-through text-pirate-300',
-                        // Fecha específica cerrada
-                        isClosedDate && inMonth &&
+                        // Día sin paseos (semanal o fecha específica) con tachado
+                        closedBlocked && inMonth &&
                           'line-through text-pirate-300',
                       )}
                     >
