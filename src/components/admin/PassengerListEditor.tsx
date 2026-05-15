@@ -89,12 +89,40 @@ export function PassengerListEditor({ reservationId, counts, readOnly = false }:
   // ── Handlers ───────────────────────────────────────────────────────────────
   const updateRow = (pos: number, field: 'fullName' | 'age', value: string) => {
     setSaveSuccess(false)
+
+    // Para el campo edad: descarta caracteres no numéricos y limita a 0-120
+    if (field === 'age') {
+      const digits = value.replace(/\D/g, '')
+      if (digits === '') {
+        setRows((prev) => prev.map((r) => r.position === pos ? { ...r, age: '' } : r))
+        return
+      }
+      const n = Math.min(120, Math.max(0, Number(digits)))
+      setRows((prev) => prev.map((r) => r.position === pos ? { ...r, age: String(n) } : r))
+      return
+    }
+
     setRows((prev) => prev.map((r) => r.position === pos ? { ...r, [field]: value } : r))
   }
 
   const handleSave = async () => {
     setSaveError(null)
     setSaveSuccess(false)
+
+    // Validación client-side de rango de edad antes de llamar al servidor
+    const invalid = rows.find((r) => {
+      if (r.age === '') return false
+      const n = Number(r.age)
+      return !Number.isInteger(n) || n < 0 || n > 120
+    })
+    if (invalid) {
+      const meta = TYPE_META[invalid.passengerType]
+      setSaveError(
+        `El pasajero ${invalid.position} (${meta.label}) tiene una edad inválida. Debe ser un número entre 0 y 120.`
+      )
+      return
+    }
+
     const inputs: PassengerInput[] = rows.map((r) => ({
       fullName:      r.fullName.trim() || null,
       age:           r.age !== '' ? Number(r.age) : null,
@@ -105,7 +133,17 @@ export function PassengerListEditor({ reservationId, counts, readOnly = false }:
       await save(inputs)
       setSaveSuccess(true)
     } catch (e) {
-      setSaveError((e as Error)?.message ?? 'Error al guardar. Intenta de nuevo.')
+      // Traduce el mensaje de constraint de Postgres a algo legible
+      const raw = (e as Error)?.message ?? ''
+      if (raw.includes('chk_age_range')) {
+        setSaveError('Una o más edades están fuera de rango (debe ser entre 0 y 120).')
+      } else if (raw.includes('chk_passenger_type')) {
+        setSaveError('Tipo de pasajero inválido. Recarga la página e intenta de nuevo.')
+      } else if (raw.includes('no encontrada o cancelada')) {
+        setSaveError('Esta reservación está cancelada y no puede modificarse.')
+      } else {
+        setSaveError(raw || 'Error al guardar. Intenta de nuevo.')
+      }
     }
   }
 

@@ -1,49 +1,41 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  CreditCard, Banknote, CheckCircle, Lock, ShieldCheck,
-  CalendarDays, User, Mail,
+  Banknote, CheckCircle, Mail, Building2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useReservation } from '@features/reservations/hooks/useReservations'
 import { useProcessPayment } from '@features/payments/hooks/usePayments'
 import { reservationService } from '@features/reservations/services/reservationService'
 import { receiptService } from '@features/payments/services/receiptService'
-import { PAYMENT_METHODS } from '@constants/index'
+import { PAYMENT_METHODS, type PaymentMethod } from '@constants/index'
 import { formatCurrency } from '@utils/formatters'
 import { Button } from '@components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@components/ui/Card'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
 
 // ════════════════════════════════════════════════════════════════════════
-//   Helpers tarjeta simulada
+//   Validación de correo
 // ════════════════════════════════════════════════════════════════════════
-function detectBrand(num: string): 'visa' | 'mastercard' | 'amex' | 'unknown' {
-  const n = num.replace(/\s/g, '')
-  if (/^4/.test(n)) return 'visa'
-  if (/^(5[1-5]|2[2-7])/.test(n)) return 'mastercard'
-  if (/^3[47]/.test(n)) return 'amex'
-  return 'unknown'
-}
-function formatCardNumber(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 19)
-  return digits.replace(/(.{4})/g, '$1 ').trim()
-}
-function formatExpiry(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 4)
-  if (digits.length < 3) return digits
-  return `${digits.slice(0, 2)}/${digits.slice(2)}`
-}
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 // ════════════════════════════════════════════════════════════════════════
-//   Página
+//   Página de pago
+//
+//   El negocio cobra ÚNICAMENTE en el muelle (efectivo o transferencia).
+//   No se procesan tarjetas en línea: cualquier flujo de "tarjeta" en el
+//   cliente sería una simulación sin verificación del lado servidor y
+//   permitiría marcar una reservación como "pagada" sin haber cobrado.
+//
+//   Esta página solo registra la INTENCIÓN de pago del cliente
+//   (efectivo o transferencia) y queda en estado "confirmada".
+//   El cobro real lo registra el staff desde /admin/venta/:id.
 // ════════════════════════════════════════════════════════════════════════
 export default function PaymentPage() {
   const { t } = useTranslation()
   const { reservationId } = useParams<{ reservationId: string }>()
   const { data: reservation, isLoading, isError, refetch } = useReservation(reservationId ?? '')
-  const [method, setMethod] = useState<'efectivo' | 'tarjeta'>('efectivo')
+  const [method, setMethod] = useState<PaymentMethod>(PAYMENT_METHODS.EFECTIVO)
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string | null>(null)
   const { mutateAsync: processPayment, isPending: processing } = useProcessPayment()
@@ -136,11 +128,12 @@ export default function PaymentPage() {
     }
   }
 
-  const handleEfectivo = async () => {
+  const handleConfirm = async () => {
     if (!(await ensureEmail())) return
-    await processPayment({ reservationId: reservation.id, method: PAYMENT_METHODS.EFECTIVO })
+    // IMPORTANTE: no marcamos como "pagada" — eso lo hace el staff en el muelle.
+    // Aquí solo registramos la intención de pago y enviamos el comprobante.
+    await processPayment({ reservationId: reservation.id, method })
     await sendReceiptEmail()
-    // ⚠️ Recibo PÚBLICO — jamás a /admin
     navigate(`/recibo/${reservation.id}`)
   }
 
@@ -157,6 +150,12 @@ export default function PaymentPage() {
           <span className="text-3xl font-bold text-gold-400">{formatCurrency(reservation.total)}</span>
         </div>
       </Card>
+
+      {/* Aviso: cobro en el muelle */}
+      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <strong>Pago en el muelle:</strong> el cobro se realiza al abordar.
+        Aceptamos efectivo y transferencia. No se procesan tarjetas en línea.
+      </div>
 
       {/* Correo obligatorio para recibo */}
       <Card className="mb-6">
@@ -187,12 +186,12 @@ export default function PaymentPage() {
         <CardHeader><CardTitle>{t('payment.method')}</CardTitle></CardHeader>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { value: 'efectivo', icon: Banknote,   label: t('payment.cash') },
-            { value: 'tarjeta',  icon: CreditCard, label: t('payment.card') },
+            { value: PAYMENT_METHODS.EFECTIVO,      icon: Banknote,  label: t('payment.cash') },
+            { value: PAYMENT_METHODS.TRANSFERENCIA, icon: Building2, label: 'Transferencia' },
           ].map(({ value, icon: Icon, label }) => (
             <button
               key={value}
-              onClick={() => setMethod(value as typeof method)}
+              onClick={() => setMethod(value)}
               className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition-colors ${
                 method === value
                   ? 'border-gold-500 bg-gold-50 text-navy-900'
@@ -206,234 +205,22 @@ export default function PaymentPage() {
         </div>
       </Card>
 
-      {/* Efectivo */}
-      {method === 'efectivo' && (
-        <Card>
-          <p className="text-navy-600 mb-4 text-sm">{t('payment.cashInfo')}</p>
-          <Button
-            variant="accent"
-            onClick={handleEfectivo}
-            isLoading={processing}
-            className="w-full"
-          >
-            {t('payment.cashConfirm')}
-          </Button>
-        </Card>
-      )}
-
-      {/* Tarjeta simulada */}
-      {method === 'tarjeta' && (
-        <SimulatedCardForm
-          reservationId={reservation.id}
-          total={reservation.total}
-          ensureEmail={ensureEmail}
-          sendReceiptEmail={sendReceiptEmail}
-          onSuccess={() => navigate(`/recibo/${reservation.id}`)}
-        />
-      )}
-    </div>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//   Formulario de tarjeta simulado (no Stripe)
-// ════════════════════════════════════════════════════════════════════════
-function SimulatedCardForm({
-  reservationId, total, ensureEmail, sendReceiptEmail, onSuccess,
-}: {
-  reservationId: string
-  total: number
-  ensureEmail: () => Promise<boolean>
-  sendReceiptEmail: () => Promise<void>
-  onSuccess: () => void
-}) {
-  const { t } = useTranslation()
-  const { mutateAsync: processPayment, isPending } = useProcessPayment()
-  const [number, setNumber] = useState('')
-  const [holder, setHolder] = useState('')
-  const [expiry, setExpiry] = useState('')
-  const [cvc, setCvc] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [simulating, setSimulating] = useState(false)
-
-  const brand = useMemo(() => detectBrand(number), [number])
-  const brandLabel = {
-    visa: 'VISA', mastercard: 'MASTERCARD', amex: 'AMEX', unknown: 'CARD',
-  }[brand]
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    // Valida correo antes que nada
-    if (!(await ensureEmail())) {
-      setError(t('payment.email.errInvalid'))
-      return
-    }
-
-    const cleanNumber = number.replace(/\s/g, '')
-    if (cleanNumber.length < 13) return setError(t('payment.card_form.errNumber'))
-    if (!holder.trim())            return setError(t('payment.card_form.errHolder'))
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) return setError(t('payment.card_form.errExpiry'))
-    const [mmStr, yyStr] = expiry.split('/')
-    const mm = Number(mmStr)
-    const yy = Number(yyStr)
-    if (mm < 1 || mm > 12) return setError(t('payment.card_form.errExpiry'))
-    const now = new Date()
-    const thisYY = now.getFullYear() % 100
-    const thisMM = now.getMonth() + 1
-    if (yy < thisYY || (yy === thisYY && mm < thisMM)) {
-      return setError(t('payment.card_form.errExpired'))
-    }
-    if (!/^\d{3,4}$/.test(cvc)) return setError(t('payment.card_form.errCvc'))
-
-    // Simula la latencia del banco
-    setSimulating(true)
-    await new Promise((r) => setTimeout(r, 1500))
-    setSimulating(false)
-
-    await processPayment({
-      reservationId,
-      method: 'tarjeta',
-      stripePaymentMethodId: `sim_${Date.now()}_${brand}`,
-    })
-    await sendReceiptEmail()
-    onSuccess()
-  }
-
-  const busy = isPending || simulating
-
-  return (
-    <Card>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Tarjeta visual */}
-        <div className="relative rounded-2xl p-5 aspect-[1.6/1] bg-gradient-to-br from-navy-900 via-navy-800 to-navy-950 text-white shadow-card-lg overflow-hidden">
-          <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-gold-400/20 blur-2xl" />
-          <div className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-gold-500/10 blur-3xl" />
-          <div className="relative flex justify-between items-start">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-7 rounded bg-gradient-to-br from-gold-300 to-gold-500" />
-              <span className="text-[10px] uppercase tracking-widest text-navy-200">
-                {t('payment.card_form.chip')}
-              </span>
-            </div>
-            <span className="text-sm font-bold tracking-wider text-gold-300">{brandLabel}</span>
-          </div>
-          <p className="relative mt-6 font-mono text-lg tracking-[0.25em] text-white/90">
-            {number ? formatCardNumber(number) : '•••• •••• •••• ••••'}
-          </p>
-          <div className="relative mt-5 flex justify-between text-[11px]">
-            <div>
-              <p className="uppercase tracking-widest text-navy-300 mb-0.5">
-                {t('payment.card_form.holderShort')}
-              </p>
-              <p className="font-semibold text-white/95 truncate max-w-[180px]">
-                {holder || t('payment.card_form.holderPlaceholder').toUpperCase()}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="uppercase tracking-widest text-navy-300 mb-0.5">
-                {t('payment.card_form.expShort')}
-              </p>
-              <p className="font-semibold text-white/95">{expiry || 'MM/AA'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Número */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-navy-700 mb-1.5">
-            {t('payment.card_form.number')}
-          </label>
-          <div className="relative">
-            <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
-            <input
-              className="input-field pl-10 font-mono tracking-wider"
-              inputMode="numeric"
-              autoComplete="cc-number"
-              placeholder="4242 4242 4242 4242"
-              value={number}
-              onChange={(e) => setNumber(formatCardNumber(e.target.value))}
-              disabled={busy}
-            />
-          </div>
-        </div>
-
-        {/* Titular */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-navy-700 mb-1.5">
-            {t('payment.card_form.holder')}
-          </label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
-            <input
-              className="input-field pl-10"
-              autoComplete="cc-name"
-              placeholder={t('payment.card_form.holderPlaceholder')}
-              value={holder}
-              onChange={(e) => setHolder(e.target.value.toUpperCase())}
-              disabled={busy}
-            />
-          </div>
-        </div>
-
-        {/* Exp / CVC */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-navy-700 mb-1.5">
-              {t('payment.card_form.expiry')}
-            </label>
-            <div className="relative">
-              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
-              <input
-                className="input-field pl-10 font-mono"
-                inputMode="numeric"
-                autoComplete="cc-exp"
-                placeholder="MM/AA"
-                value={expiry}
-                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                disabled={busy}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-navy-700 mb-1.5">
-              {t('payment.card_form.cvc')}
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
-              <input
-                className="input-field pl-10 font-mono"
-                inputMode="numeric"
-                autoComplete="cc-csc"
-                placeholder="123"
-                maxLength={4}
-                value={cvc}
-                onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                disabled={busy}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <p className="text-sm text-pirate-600 bg-pirate-50 border border-pirate-200 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        <Button variant="accent" type="submit" className="w-full" isLoading={busy}>
-          {simulating
-            ? t('payment.card_form.processing')
-            : t('payment.card_form.payAmount', { amount: formatCurrency(total) })}
+      {/* Confirmar */}
+      <Card>
+        <p className="text-navy-600 mb-4 text-sm">
+          {method === PAYMENT_METHODS.EFECTIVO
+            ? t('payment.cashInfo')
+            : 'Te enviaremos los datos bancarios al correo registrado.'}
+        </p>
+        <Button
+          variant="accent"
+          onClick={handleConfirm}
+          isLoading={processing}
+          className="w-full"
+        >
+          {t('payment.cashConfirm')}
         </Button>
-
-        <div className="flex items-center justify-center gap-2 text-[11px] text-navy-400 pt-1">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>{t('payment.card_form.securityNote')}</span>
-        </div>
-      </form>
-    </Card>
+      </Card>
+    </div>
   )
 }

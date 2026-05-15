@@ -25,16 +25,27 @@
 import { serve } from 'https://deno.land/std@0.203.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// ── CORS: restringido a orígenes permitidos vía ALLOWED_ORIGINS env ────────
+// Ejemplo: ALLOWED_ORIGINS="https://barco-pirata.com,http://localhost:3000"
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+function corsHeadersFor(origin: string | null): Record<string, string> {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? ''
+  return {
+    'Access-Control-Allow-Origin':  allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, origin: string | null = null): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeadersFor(origin), 'Content-Type': 'application/json' },
   })
 }
 
@@ -164,22 +175,30 @@ function row(label: string, value: unknown): string {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeadersFor(origin) })
 
   try {
     const { reservationId, email } = await req.json()
     if (!reservationId || typeof reservationId !== 'string') {
-      return json({ error: 'reservationId es requerido' }, 400)
+      return json({ error: 'reservationId es requerido' }, 400, origin)
     }
     if (!email || typeof email !== 'string' ||
         !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      return json({ error: 'email inválido' }, 400)
+      return json({ error: 'email inválido' }, 400, origin)
     }
 
-    // Cliente de servicio para leer la reserva saltando RLS
+    // Cliente de servicio para leer la reserva saltando RLS.
+    // SERVICE_ROLE es REQUERIDO — no aceptamos fallback a anon, porque RLS
+    // bloquearía la lectura y el flujo nunca funcionaría correctamente.
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!serviceKey) {
+      console.error('[send-receipt] SUPABASE_SERVICE_ROLE_KEY no configurada')
+      return json({ error: 'Configuración del servidor incompleta' }, 500, origin)
+    }
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')!,
+      serviceKey,
     )
 
     const { data: reservation, error } = await supabase
@@ -189,7 +208,7 @@ serve(async (req) => {
       .single()
 
     if (error || !reservation) {
-      return json({ error: 'Reservación no encontrada' }, 404)
+      return json({ error: 'Reservación no encontrada' }, 404, origin)
     }
 
     // ── Autorización ───────────────────────────────────────────────────────
@@ -215,7 +234,7 @@ serve(async (req) => {
     if (!isStaff) {
       const storedEmail = (reservation.contact_email as string | null)?.trim().toLowerCase()
       if (!storedEmail || storedEmail !== email.trim().toLowerCase()) {
-        return json({ error: 'No autorizado para enviar este recibo' }, 403)
+        return json({ error: 'No autorizado para enviar este recibo' }, 403, origin)
       }
     }
 
@@ -230,7 +249,7 @@ serve(async (req) => {
     // Modo simulado (sin proveedor configurado): útil para demos.
     if (!apiKey) {
       console.log('[send-receipt] RESEND_API_KEY no configurada — simulando envío a', email)
-      return json({ sent: false, simulated: true, to: email })
+      return json({ sent: false, simulated: true, to: email }, 200, origin)
     }
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -247,14 +266,15 @@ serve(async (req) => {
     if (!res.ok) {
       const txt = await res.text()
       console.error('[send-receipt] Resend error:', res.status, txt)
-      return json({ sent: false, error: `Resend ${res.status}: ${txt}` }, 502)
+      // No filtramos el cuerpo de Resend al cliente (podría contener detalles del provider)
+      return json({ sent: false, error: 'Error al enviar correo' }, 502, origin)
     }
 
     const body = await res.json()
-    return json({ sent: true, id: body.id ?? null, to: email })
+    return json({ sent: true, id: body.id ?? null, to: email }, 200, origin)
   } catch (err) {
     console.error('[send-receipt] error:', err)
-    const msg = err instanceof Error ? err.message : String(err)
-    return json({ error: msg }, 500)
+    // No filtramos detalles del error al cliente
+    return json({ error: 'Error interno del servidor' }, 500, origin)
   }
 })

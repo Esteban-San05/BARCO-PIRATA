@@ -11,21 +11,32 @@
 import { serve } from 'https://deno.land/std@0.203.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// ── CORS restringido (idéntico al resto de Edge Functions) ────────────────
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+function corsHeadersFor(origin: string | null): Record<string, string> {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? ''
+  return {
+    'Access-Control-Allow-Origin':  allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeadersFor(origin) })
 
   try {
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY')
     const GOOGLE_PLACE_ID = Deno.env.get('GOOGLE_PLACE_ID')
 
     if (!GOOGLE_API_KEY || !GOOGLE_PLACE_ID) {
-      return json({ error: 'Faltan variables de entorno: GOOGLE_API_KEY o GOOGLE_PLACE_ID' }, 500)
+      return json({ error: 'Faltan variables de entorno: GOOGLE_API_KEY o GOOGLE_PLACE_ID' }, 500, origin)
     }
 
     // ── 1. Llamar a Google Places API ────────────────────────────────────────
@@ -37,7 +48,7 @@ serve(async (req) => {
 
     if (googleData.status !== 'OK') {
       console.error('[sync-reviews] Google API error:', googleData.status, googleData.error_message)
-      return json({ error: `Google API error: ${googleData.status}` }, 502)
+      return json({ error: `Google API error: ${googleData.status}` }, 502, origin)
     }
 
     const { reviews = [], rating, user_ratings_total } = googleData.result
@@ -76,7 +87,7 @@ serve(async (req) => {
 
       if (reviewsError) {
         console.error('[sync-reviews] Error insertando reseñas:', reviewsError)
-        return json({ error: 'Error guardando reseñas' }, 500)
+        return json({ error: 'Error guardando reseñas' }, 500, origin)
       }
     }
 
@@ -87,7 +98,7 @@ serve(async (req) => {
 
     if (placeError) {
       console.error('[sync-reviews] Error insertando place info:', placeError)
-      return json({ error: 'Error guardando place info' }, 500)
+      return json({ error: 'Error guardando place info' }, 500, origin)
     }
 
     console.log(`[sync-reviews] ✅ ${reviews.length} reseñas guardadas. Rating: ${rating} (${user_ratings_total} total)`)
@@ -97,17 +108,17 @@ serve(async (req) => {
       reviewsSaved: reviews.length,
       rating,
       totalReviews: user_ratings_total,
-    })
+    }, 200, origin)
 
   } catch (err) {
     console.error('[sync-reviews] Error inesperado:', err)
-    return json({ error: 'Error interno del servidor' }, 500)
+    return json({ error: 'Error interno del servidor' }, 500, origin)
   }
 })
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, origin: string | null = null) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeadersFor(origin), 'Content-Type': 'application/json' },
   })
 }

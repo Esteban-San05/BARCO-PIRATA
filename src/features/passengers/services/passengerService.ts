@@ -21,50 +21,47 @@ const mapStatusRow = (row: Record<string, unknown>): ManifestStatus => ({
 })
 
 export const passengerService = {
+  /**
+   * Lista pasajeros de una reservación.
+   *
+   * Usa la función SECURITY DEFINER `get_passengers_by_reservation` para
+   * que clientes anónimos puedan leer SOLO sus pasajeros (conociendo el UUID),
+   * sin que la tabla quede abierta a dumps masivos (fix IDOR — mig 00015).
+   */
   async listByReservation(reservationId: string): Promise<Passenger[]> {
-    const { data, error } = await supabase
-      .from('reservation_passengers')
-      .select('*')
-      .eq('reservation_id', reservationId)
-      .order('position', { ascending: true })
+    const { data, error } = await supabase.rpc('get_passengers_by_reservation', {
+      p_reservation_id: reservationId,
+    })
 
     if (error) throw new Error(error.message)
-    return (data as Record<string, unknown>[]).map(mapRow)
+    return ((data ?? []) as Record<string, unknown>[]).map(mapRow)
   },
 
   /**
    * Reemplaza la lista completa de pasajeros para una reservación.
-   * Hace DELETE de las filas existentes e INSERT de las nuevas en una sola transacción.
+   *
+   * Llama a la función SECURITY DEFINER `upsert_passengers_for_reservation`,
+   * que hace DELETE + INSERT atómico en el servidor, validando que la
+   * reservación exista y no esté cancelada (mig 00015).
    */
   async bulkUpsert(reservationId: string, rows: PassengerInput[]): Promise<Passenger[]> {
-    // DELETE existentes (requiere rol authenticated o policy anon_delete si se añade)
-    const { error: deleteError } = await supabase
-      .from('reservation_passengers')
-      .delete()
-      .eq('reservation_id', reservationId)
-
-    if (deleteError) throw new Error(deleteError.message)
-
-    if (rows.length === 0) return []
-
-    const inserts = rows.map((r) => ({
-      reservation_id: reservationId,
-      full_name:      r.fullName?.trim() || null,
-      age:            r.age ?? null,
-      passenger_type: r.passengerType,
-      position:       r.position,
+    const payload = rows.map((r) => ({
+      fullName:      r.fullName?.trim() || null,
+      age:           r.age ?? null,
+      passengerType: r.passengerType,
+      position:      r.position,
     }))
 
-    const { data, error } = await supabase
-      .from('reservation_passengers')
-      .insert(inserts)
-      .select()
+    const { data, error } = await supabase.rpc('upsert_passengers_for_reservation', {
+      p_reservation_id: reservationId,
+      p_passengers:     payload,
+    })
 
     if (error) throw new Error(error.message)
-    return (data as Record<string, unknown>[]).map(mapRow)
+    return ((data ?? []) as Record<string, unknown>[]).map(mapRow)
   },
 
-  /** Estado del manifiesto para todas las reservaciones de una fecha. */
+  /** Estado del manifiesto para todas las reservaciones de una fecha (admin). */
   async getManifestStatusByDate(date: string): Promise<ManifestStatus[]> {
     const { data, error } = await supabase
       .from('reservation_manifest_status')
@@ -75,22 +72,26 @@ export const passengerService = {
     return (data as Record<string, unknown>[]).map(mapStatusRow)
   },
 
-  /** Estado del manifiesto de una reservación específica. */
+  /**
+   * Estado del manifiesto de una reservación específica.
+   *
+   * Usa la función SECURITY DEFINER `get_manifest_status_by_reservation`
+   * para soportar acceso anónimo sin abrir la vista a dumps masivos.
+   */
   async getManifestStatus(reservationId: string): Promise<ManifestStatus | null> {
-    const { data, error } = await supabase
-      .from('reservation_manifest_status')
-      .select('*')
-      .eq('reservation_id', reservationId)
-      .maybeSingle()
+    const { data, error } = await supabase.rpc('get_manifest_status_by_reservation', {
+      p_reservation_id: reservationId,
+    })
 
     if (error) throw new Error(error.message)
-    if (!data) return null
-    return mapStatusRow(data as Record<string, unknown>)
+    const rows = (data ?? []) as Record<string, unknown>[]
+    if (rows.length === 0) return null
+    return mapStatusRow(rows[0])
   },
 
   /**
-   * Lista todos los pasajeros de una fecha (para ManifiestosPage).
-   * Usa dos queries separadas para evitar problemas de filtro en joins de PostgREST.
+   * Lista todos los pasajeros de una fecha (para ManifiestosPage, ADMIN).
+   * Requiere sesión authenticated — usa acceso directo gracias a RLS.
    */
   async listByDate(date: string): Promise<Array<Passenger & { reservationTime: string; contactName: string }>> {
     // 1. Reservaciones activas del día

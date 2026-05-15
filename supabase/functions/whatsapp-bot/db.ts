@@ -165,25 +165,21 @@ async function logRateLimitAlert(phone: string): Promise<void> {
 }
 
 // ─── Buscar reservación activa por teléfono ───────────────────────────────────
+// Usa la función SECURITY DEFINER `find_active_reservation_by_phone` que filtra
+// en el servidor por los últimos 10 dígitos normalizados (sin traer 20 filas a
+// memoria como antes). Migración 00015_security_hardening_v2.sql.
 export async function getReservationByPhone(phone: string): Promise<Reservation | null> {
   const supabase = getAdminClient()
-  const digits = normalizePhone(phone).slice(-10) // últimos 10 dígitos
+  const tail = normalizePhone(phone).slice(-10)
 
-  const { data, error } = await supabase
-    .from('reservations')
-    .select('*')
-    .neq('status', 'cancelada')
-    .order('created_at', { ascending: false })
-    .limit(20)
+  const { data, error } = await supabase.rpc('find_active_reservation_by_phone', {
+    p_phone_tail: tail,
+  })
 
   if (error || !data) return null
 
-  const match = data.find((r: Reservation) => {
-    const stored = r.contact_phone.replace(/\D/g, '').slice(-10)
-    return stored === digits
-  })
-
-  return match ?? null
+  const rows = data as Reservation[]
+  return rows.length > 0 ? rows[0] : null
 }
 
 // ─── Actualizar estado de reservación ────────────────────────────────────────
