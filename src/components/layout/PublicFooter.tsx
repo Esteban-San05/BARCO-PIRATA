@@ -22,7 +22,7 @@ export function PublicFooter() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <img
-                src="/images/logo.png"
+                src="/images/logo.webp"
                 alt={COMPANY.shortName}
                 className="h-[72px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(247,201,72,0.35)]"
               />

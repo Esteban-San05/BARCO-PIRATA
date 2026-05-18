@@ -73,7 +73,7 @@ function AdminLayoutInner() {
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10 shrink-0">
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt={COMPANY.shortName}
             className="h-12 w-auto object-contain drop-shadow-[0_2px_8px_rgba(247,201,72,0.5)]"
           />

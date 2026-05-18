@@ -108,7 +108,7 @@ export default function HomePage() {
       <section className="bg-navy-900 py-16">
         <div className="container-app text-center">
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt="Barco Pirata"
             className="h-[120px] w-auto object-contain mx-auto mb-6 drop-shadow-[0_4px_16px_rgba(247,201,72,0.4)]"
           />

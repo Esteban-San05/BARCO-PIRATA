@@ -8,14 +8,14 @@ import '../../styles/hero.css'
 // 📁 Agrega tus fotos en public/images/carrusel/ con los nombres de abajo.
 // Para añadir más, duplica una línea y cambia el nombre del archivo.
 const HERO_PHOTOS = [
-  { src: '/images/carrusel/carrusel-1.jpg', alt: 'Barco Pirata Perla Negra' },
-  { src: '/images/carrusel/carrusel-2.jpg', alt: 'Paseo en el Mar de Cortés' },
-  { src: '/images/carrusel/carrusel-3.jpg', alt: 'Aventura familiar en el mar' },
-  { src: '/images/carrusel/carrusel-4.jpg', alt: 'Atardecer en Puerto Peñasco' },
-  { src: '/images/carrusel/carrusel-5.jpg', alt: 'La tripulación pirata' },
-  { src: '/images/carrusel/carrusel-6.jpg', alt: 'Experiencia única en el mar' },
-  { src: '/images/carrusel/carrusel-7.jpg', alt: 'Show a bordo de la Perla Negra' },
-  { src: '/images/carrusel/carrusel-8.jpg', alt: 'Diversión para toda la familia' },
+  { src: '/images/carrusel/carrusel-1.webp', alt: 'Barco Pirata Perla Negra' },
+  { src: '/images/carrusel/carrusel-2.webp', alt: 'Paseo en el Mar de Cortés' },
+  { src: '/images/carrusel/carrusel-3.webp', alt: 'Aventura familiar en el mar' },
+  { src: '/images/carrusel/carrusel-4.webp', alt: 'Atardecer en Puerto Peñasco' },
+  { src: '/images/carrusel/carrusel-5.webp', alt: 'La tripulación pirata' },
+  { src: '/images/carrusel/carrusel-6.webp', alt: 'Experiencia única en el mar' },
+  { src: '/images/carrusel/carrusel-7.webp', alt: 'Show a bordo de la Perla Negra' },
+  { src: '/images/carrusel/carrusel-8.webp', alt: 'Diversión para toda la familia' },
 ]
 
 const SLIDE_DURATION = 5000
@@ -215,7 +215,7 @@ export function HeroSection() {
       <header className="hero-nav">
         <Link to="/" className="hero-brand">
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt="Barco Pirata Perla Negra"
             style={{ height: '78px', width: 'auto', objectFit: 'contain' }}
             draggable={false}
@@ -307,7 +307,7 @@ export function HeroSection() {
             <span/><span/><span/><span/>
           </div>
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt="Perla Negra - Barco Pirata"
             className="hero-crest-img"
             draggable={false}

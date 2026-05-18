@@ -22,14 +22,14 @@ interface ImageCarouselProps {
 // 📁 Agrega tus fotos en public/images/carrusel/ con los nombres de abajo.
 // Para añadir más, duplica una línea y cambia el nombre del archivo.
 const IMAGES = [
-  { src: '/images/carrusel/carrusel-1.jpg', alt: 'Paseo en Barco Pirata 1' },
-  { src: '/images/carrusel/carrusel-2.jpg', alt: 'Paseo en Barco Pirata 2' },
-  { src: '/images/carrusel/carrusel-3.jpg', alt: 'Paseo en Barco Pirata 3' },
-  { src: '/images/carrusel/carrusel-4.jpg', alt: 'Paseo en Barco Pirata 4' },
-  { src: '/images/carrusel/carrusel-5.jpg', alt: 'Paseo en Barco Pirata 5' },
-  { src: '/images/carrusel/carrusel-6.jpg', alt: 'Paseo en Barco Pirata 6' },
-  { src: '/images/carrusel/carrusel-7.jpg', alt: 'Paseo en Barco Pirata 7' },
-  { src: '/images/carrusel/carrusel-8.jpg', alt: 'Paseo en Barco Pirata 8' },
+  { src: '/images/carrusel/carrusel-1.webp', alt: 'Paseo en Barco Pirata 1' },
+  { src: '/images/carrusel/carrusel-2.webp', alt: 'Paseo en Barco Pirata 2' },
+  { src: '/images/carrusel/carrusel-3.webp', alt: 'Paseo en Barco Pirata 3' },
+  { src: '/images/carrusel/carrusel-4.webp', alt: 'Paseo en Barco Pirata 4' },
+  { src: '/images/carrusel/carrusel-5.webp', alt: 'Paseo en Barco Pirata 5' },
+  { src: '/images/carrusel/carrusel-6.webp', alt: 'Paseo en Barco Pirata 6' },
+  { src: '/images/carrusel/carrusel-7.webp', alt: 'Paseo en Barco Pirata 7' },
+  { src: '/images/carrusel/carrusel-8.webp', alt: 'Paseo en Barco Pirata 8' },
 ]
 
 export function ImageCarousel({

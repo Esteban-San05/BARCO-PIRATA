@@ -31,7 +31,7 @@ export function PublicNav() {
         {/* Brand */}
         <Link to="/" className="hero-brand">
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt="Barco Pirata Perla Negra"
             style={{ height: '66px', width: 'auto', objectFit: 'contain' }}
             draggable={false}

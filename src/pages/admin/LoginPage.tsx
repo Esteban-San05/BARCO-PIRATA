@@ -49,7 +49,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <img
-              src="/images/logo.png"
+              src="/images/logo.webp"
               alt={COMPANY.shortName}
               className="h-36 w-auto object-contain drop-shadow-[0_4px_20px_rgba(247,201,72,0.6)]"
             />
