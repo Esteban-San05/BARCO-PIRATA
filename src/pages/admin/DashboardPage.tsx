@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Users, CalendarCheck, DollarSign, TrendingUp, CalendarDays, Banknote, ArrowLeftRight, Baby, AlertTriangle } from 'lucide-react'
+import { Users, CalendarCheck, DollarSign, TrendingUp, CalendarDays, Banknote, ArrowLeftRight, Baby, AlertTriangle, MessageCircle } from 'lucide-react'
 import { ClimaMarino } from '@components/ClimaMarino'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useReservationsByDate } from '@features/reservations/hooks/useReservations'
@@ -40,6 +40,13 @@ export default function DashboardPage() {
   const incompleteManifests = isToday
     ? (manifestStatuses ?? []).filter(s => !s.isComplete && s.required > 0)
     : []
+
+  const cancelRequests = useMemo(
+    () => reservations.filter(
+      r => r.status === 'pendiente' && r.notes?.includes('[CANCELACIÓN SOLICITADA VÍA WHATSAPP]')
+    ),
+    [reservations],
+  )
 
   // ── KPI derivados ──────────────────────────────────────────────────────────
   const pagadas        = reservations.filter(r => r.status === 'pagada')
@@ -104,6 +111,35 @@ export default function DashboardPage() {
             <p className="text-xs mt-0.5" style={{ color: '#b45309' }}>
               Capitanía requiere nombre y edad de todos los pasajeros antes de zarpar.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Banner cancelaciones solicitadas vía WhatsApp ─────────────────── */}
+      {cancelRequests.length > 0 && (
+        <div
+          className="flex items-start gap-3 rounded-xl px-4 py-3"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}
+        >
+          <MessageCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: '#991b1b' }}>
+              {cancelRequests.length === 1
+                ? '1 solicitud de cancelación vía WhatsApp'
+                : `${cancelRequests.length} solicitudes de cancelación vía WhatsApp`}
+            </p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {cancelRequests.map(r => (
+                <Link
+                  key={r.id}
+                  to={`/admin/venta/${r.id}`}
+                  className="text-xs underline font-medium"
+                  style={{ color: '#b91c1c' }}
+                >
+                  {r.contactName} · {r.date}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       )}

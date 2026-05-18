@@ -12,7 +12,7 @@ export interface Reservation {
   date: string          // YYYY-MM-DD
   time: string          // HH:MM:SS
   number_of_people: number
-  package_id: string    // 'con_comida' | 'solo_bebidas' | 'solo_paseo'
+  package_id: string
   service_type: string
   subtotal: number
   discount: number
@@ -24,11 +24,34 @@ export interface Reservation {
 
 export type ReservationStatus = 'pendiente' | 'confirmada' | 'pagada' | 'cancelada'
 
+export interface PackageOverrideData {
+  label: string
+  icon: string
+  adultPrice: number
+  youthPrice: number
+  description: string
+  active: boolean
+  isCustom: boolean
+}
+
+export interface PromotionItem {
+  id: string
+  name: string
+  discountType: 'percentage' | 'fixed'
+  discountValue: number
+  minPeople: number
+  active: boolean
+  startDate: string | null
+  endDate: string | null
+}
+
 export interface BusinessSettings {
   closed_weekdays: number[]
   active_time_slots: string[]
   boat_capacity: number
   closed_dates: string[]
+  package_overrides: Record<string, PackageOverrideData>
+  promotions: PromotionItem[]
 }
 
 // ─── Estado de sesión persistido en Supabase ──────────────────────────────────
@@ -63,6 +86,21 @@ export function normalizePhone(phone: string): string {
 }
 
 // ─── Sesiones ─────────────────────────────────────────────────────────────────
+
+/**
+ * Busca la sesión del cliente SIN crearla si no existe.
+ * Devuelve null para números que nunca iniciaron desde la app.
+ * Usar en handleMessage para ignorar mensajes de números desconocidos.
+ */
+export async function getSessionIfExists(phone: string): Promise<BotSession | null> {
+  const supabase = getAdminClient()
+  const { data } = await supabase
+    .from('bot_sessions')
+    .select('*')
+    .eq('phone', normalizePhone(phone))
+    .maybeSingle()
+  return data as BotSession | null
+}
 
 /** Lee la sesión del cliente. Si no existe la crea con valores por defecto. */
 export async function getSession(phone: string): Promise<BotSession> {
@@ -225,6 +263,25 @@ export async function requestCancellation(
     'pendiente',
     `[CANCELACIÓN SOLICITADA VÍA WHATSAPP] ${safeReason}`,
   )
+}
+
+// ─── Estado del manifiesto de pasajeros ──────────────────────────────────────
+
+export interface ManifestStatus {
+  required: number
+  filled: number
+  isComplete: boolean
+}
+
+/** Devuelve el estado del manifiesto para una reservación. null si hay error. */
+export async function getManifestStatus(reservationId: string): Promise<ManifestStatus | null> {
+  const supabase = getAdminClient()
+  const { data, error } = await supabase.rpc('get_manifest_status_by_reservation', {
+    p_reservation_id: reservationId,
+  })
+  if (error || !data?.length) return null
+  const row = (data as Array<{ required: number; filled: number; is_complete: boolean }>)[0]
+  return { required: row.required, filled: row.filled, isComplete: row.is_complete }
 }
 
 export async function getBusinessSettings(): Promise<BusinessSettings | null> {

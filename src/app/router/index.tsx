@@ -12,6 +12,7 @@ const ReservationPage    = lazy(() => import('@pages/public/ReservationPage'))
 const ConfirmationPage   = lazy(() => import('@pages/public/ConfirmationPage'))
 const ClimaPage          = lazy(() => import('@pages/public/ClimaPage'))
 const GalleryPage        = lazy(() => import('@pages/public/GalleryPage'))
+const PasajerosPage      = lazy(() => import('@pages/public/PasajerosPage'))
 
 const LoginPage          = lazy(() => import('@pages/admin/LoginPage'))
 const DashboardPage      = lazy(() => import('@pages/admin/DashboardPage'))
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: '/reservar/confirmacion', element: withSuspense(<ConfirmationPage />) },
       { path: '/clima',                 element: withSuspense(<ClimaPage />) },
       { path: '/galeria',               element: withSuspense(<GalleryPage />) },
+      { path: '/pasajeros/:reservationId', element: withSuspense(<PasajerosPage />) },
     ],
   },
 
