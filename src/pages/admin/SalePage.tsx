@@ -7,7 +7,7 @@ import {
 import { useReservation, useCancelReservation } from '@features/reservations/hooks/useReservations'
 import { useProcessPayment } from '@features/payments/hooks/usePayments'
 import { formatCurrency, formatDate, formatTime } from '@utils/formatters'
-import { PACKAGES, CHILDREN_PRICE, COMPANY } from '@constants/index'
+import { PACKAGES, COMPANY } from '@constants/index'
 import type { PackageId, PaymentMethod } from '@constants/index'
 import { Button } from '@components/ui/Button'
 import { Card } from '@components/ui/Card'

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Package, Tag, Plus, Pencil, Trash2, Save, Check, X, ToggleLeft, ToggleRight } from 'lucide-react'
 import { PACKAGES } from '@constants/index'
-import type { PackageId } from '@constants/index'
 import type { PackageOverrideData, PromotionItem } from '@app-types/index'
 import { useBusinessSettings, useUpdateBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
 import { useAdminHeaderSlot } from '@lib/AdminHeaderSlot'
@@ -43,7 +42,7 @@ const EMPTY_PROMO = (): PromotionItem => ({
 function buildEffectivePkgs(overrides: Record<string, PackageOverrideData>): Record<string, PackageOverrideData> {
   const defaults: Record<string, PackageOverrideData> = {}
   for (const [key, pkg] of Object.entries(PACKAGES)) {
-    defaults[key] = {
+    const base: PackageOverrideData = {
       label:       pkg.label,
       icon:        pkg.icon,
       adultPrice:  pkg.adultPrice,
@@ -51,8 +50,8 @@ function buildEffectivePkgs(overrides: Record<string, PackageOverrideData>): Rec
       description: pkg.description,
       active:      true,
       isCustom:    false,
-      ...overrides[key],
     }
+    defaults[key] = { ...base, ...overrides[key] }
   }
   // paquetes custom (no están en PACKAGES)
   for (const [key, data] of Object.entries(overrides)) {
@@ -153,7 +152,7 @@ function PkgForm({
 // ─── Sub: card de paquete ─────────────────────────────────────────────────────
 
 function PkgCard({
-  pkgKey, data, isDefault,
+  pkgKey: _pkgKey, data, isDefault,
   onEdit, onToggle, onDelete,
 }: {
   pkgKey:   string

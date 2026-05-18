@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { CalendarDays, Search, Download, Banknote, ArrowLeftRight, Plus, AlertTriangle, CheckCircle2, ClipboardList } from 'lucide-react'
+import { CalendarDays, Search, Download, Banknote, ArrowLeftRight, Plus, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useReservationsByDate, useCancelReservation } from '@features/reservations/hooks/useReservations'
 import { useManifestStatusByDate } from '@features/passengers/hooks/usePassengers'
