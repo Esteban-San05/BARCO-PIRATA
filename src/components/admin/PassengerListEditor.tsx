@@ -29,11 +29,25 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const TYPE_META: Record<PassengerType, { label: string; color: string }> = {
-  adult: { label: 'Adulto',       color: 'bg-navy-100 text-navy-700' },
-  youth: { label: 'Adolescente',  color: 'bg-blue-100 text-blue-700' },
-  child: { label: 'Niño',         color: 'bg-green-100 text-green-700' },
-  baby:  { label: 'Bebé',         color: 'bg-purple-100 text-purple-700' },
+const TYPE_META: Record<PassengerType, { label: string; color: string; minAge: number; maxAge: number }> = {
+  adult: { label: 'Adulto',       color: 'bg-navy-100 text-navy-700',    minAge: 18, maxAge: 120 },
+  youth: { label: 'Adolescente',  color: 'bg-blue-100 text-blue-700',    minAge: 12, maxAge: 17  },
+  child: { label: 'Niño',         color: 'bg-green-100 text-green-700',   minAge: 3,  maxAge: 11  },
+  baby:  { label: 'Bebé',         color: 'bg-purple-100 text-purple-700', minAge: 0,  maxAge: 2   },
+}
+
+/** Texto legible del rango de edad esperado para un tipo de pasajero. */
+const ageRangeLabel = (t: PassengerType): string => {
+  const m = TYPE_META[t]
+  return m.maxAge >= 120 ? `${m.minAge} años o más` : `${m.minAge} a ${m.maxAge} años`
+}
+
+/** Una edad vacía se considera válida (campo opcional); si tiene valor debe caer en el rango del tipo. */
+function isAgeValid(type: PassengerType, ageStr: string): boolean {
+  if (ageStr === '') return true
+  const n = Number(ageStr)
+  const m = TYPE_META[type]
+  return Number.isInteger(n) && n >= m.minAge && n <= m.maxAge
 }
 
 /** Genera las filas en orden adultos → adolescentes → niños → bebés. */
@@ -75,8 +89,11 @@ export function PassengerListEditor({ reservationId, counts, readOnly = false }:
 
   // ── Métricas ───────────────────────────────────────────────────────────────
   const total   = rows.length
-  const filled  = rows.filter((r) => r.fullName.trim() !== '' && r.age !== '').length
+  const filled  = rows.filter(
+    (r) => r.fullName.trim() !== '' && r.age !== '' && isAgeValid(r.passengerType, r.age),
+  ).length
   const percent = total === 0 ? 100 : Math.round((filled / total) * 100)
+  const hasInvalidRows = rows.some((r) => !isAgeValid(r.passengerType, r.age))
 
   const progressColor =
     percent === 100 ? 'bg-green-500' :
@@ -109,16 +126,13 @@ export function PassengerListEditor({ reservationId, counts, readOnly = false }:
     setSaveError(null)
     setSaveSuccess(false)
 
-    // Validación client-side de rango de edad antes de llamar al servidor
-    const invalid = rows.find((r) => {
-      if (r.age === '') return false
-      const n = Number(r.age)
-      return !Number.isInteger(n) || n < 0 || n > 120
-    })
+    // Validación client-side: la edad debe corresponder al tipo de pasajero
+    const invalid = rows.find((r) => !isAgeValid(r.passengerType, r.age))
     if (invalid) {
       const meta = TYPE_META[invalid.passengerType]
       setSaveError(
-        `El pasajero ${invalid.position} (${meta.label}) tiene una edad inválida. Debe ser un número entre 0 y 120.`
+        `El pasajero ${invalid.position} (${meta.label}) tiene una edad fuera de rango. ` +
+        `Un ${meta.label.toLowerCase()} debe tener ${ageRangeLabel(invalid.passengerType)}.`
       )
       return
     }
@@ -192,57 +206,67 @@ export function PassengerListEditor({ reservationId, counts, readOnly = false }:
       {/* ── Filas de pasajeros ─────────────────────────────────────────────── */}
       <div className="space-y-2">
         {rows.map((row) => {
-          const meta      = TYPE_META[row.passengerType]
-          const isRowDone = row.fullName.trim() !== '' && row.age !== ''
+          const meta         = TYPE_META[row.passengerType]
+          const isRowInvalid = row.age !== '' && !isAgeValid(row.passengerType, row.age)
+          const isRowDone    = row.fullName.trim() !== '' && row.age !== '' && !isRowInvalid
 
           return (
-            <div
-              key={row.position}
-              className={[
-                'flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors',
-                isRowDone ? 'border-green-200 bg-green-50' : 'border-navy-100 bg-white',
-              ].join(' ')}
-            >
-              {/* Posición + tipo */}
-              <span className="text-xs text-navy-400 w-5 shrink-0 text-right font-mono">
-                {row.position}
-              </span>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${meta.color}`}>
-                {meta.label}
-              </span>
+            <div key={row.position}>
+              <div
+                className={[
+                  'flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors',
+                  isRowInvalid ? 'border-red-200 bg-red-50'
+                    : isRowDone ? 'border-green-200 bg-green-50'
+                    : 'border-navy-100 bg-white',
+                ].join(' ')}
+              >
+                {/* Posición + tipo */}
+                <span className="text-xs text-navy-400 w-5 shrink-0 text-right font-mono">
+                  {row.position}
+                </span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${meta.color}`}>
+                  {meta.label}
+                </span>
 
-              {readOnly ? (
-                <>
-                  <span className="flex-1 text-sm text-navy-800 truncate">
-                    {row.fullName || <span className="text-navy-300 italic">—</span>}
-                  </span>
-                  <span className="text-sm text-navy-500 shrink-0 w-16 text-right">
-                    {row.age !== '' ? `${row.age} años` : <span className="text-navy-300">—</span>}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <input
-                    type="text"
-                    value={row.fullName}
-                    onChange={(e) => updateRow(row.position, 'fullName', e.target.value)}
-                    placeholder="Nombre completo"
-                    className="input-field flex-1 text-sm py-1.5"
-                  />
-                  <input
-                    type="number"
-                    value={row.age}
-                    onChange={(e) => updateRow(row.position, 'age', e.target.value)}
-                    placeholder="Edad"
-                    min={0}
-                    max={120}
-                    className="input-field w-20 shrink-0 text-sm py-1.5"
-                  />
-                </>
-              )}
+                {readOnly ? (
+                  <>
+                    <span className="flex-1 text-sm text-navy-800 truncate">
+                      {row.fullName || <span className="text-navy-300 italic">—</span>}
+                    </span>
+                    <span className="text-sm text-navy-500 shrink-0 w-16 text-right">
+                      {row.age !== '' ? `${row.age} años` : <span className="text-navy-300">—</span>}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={row.fullName}
+                      onChange={(e) => updateRow(row.position, 'fullName', e.target.value)}
+                      placeholder="Nombre completo"
+                      className="input-field flex-1 text-sm py-1.5"
+                    />
+                    <input
+                      type="number"
+                      value={row.age}
+                      onChange={(e) => updateRow(row.position, 'age', e.target.value)}
+                      placeholder="Edad"
+                      min={meta.minAge}
+                      max={meta.maxAge}
+                      className="input-field w-20 shrink-0 text-sm py-1.5"
+                    />
+                  </>
+                )}
 
-              {isRowDone && (
-                <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                {isRowInvalid
+                  ? <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                  : isRowDone && <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />}
+              </div>
+
+              {isRowInvalid && (
+                <p className="text-[11px] text-red-600 mt-1 ml-8">
+                  Un {meta.label.toLowerCase()} debe tener {ageRangeLabel(row.passengerType)}.
+                </p>
               )}
             </div>
           )
@@ -256,6 +280,7 @@ export function PassengerListEditor({ reservationId, counts, readOnly = false }:
             variant="outline"
             onClick={handleSave}
             isLoading={isPending}
+            disabled={hasInvalidRows}
             className="w-full"
           >
             <Save className="w-4 h-4" /> Guardar manifiesto

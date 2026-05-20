@@ -397,7 +397,7 @@ export default function ReservationPage() {
 
                 {/* Tabla paquete × grupo de edad */}
                 <div className="overflow-x-auto -mx-1">
-                  <table className="w-full min-w-[480px] border-collapse">
+                  <table className="w-full min-w-[600px] border-collapse">
                     <thead>
                       <tr>
                         <th className="text-left pb-3 pl-1 text-[12px] font-semibold text-navy-400 uppercase tracking-wider w-32">
@@ -433,6 +433,15 @@ export default function ReservationPage() {
                                 </td>
                               )
                             }
+                            if (PACKAGES[id].adultsOnly && key === 'youth') {
+                              return (
+                                <td key={id} className="py-3 px-2 text-center">
+                                  <span className="inline-block text-[11px] text-navy-300 bg-navy-50 border border-navy-100 rounded-lg px-2 py-1 leading-tight select-none">
+                                    Solo adultos
+                                  </span>
+                                </td>
+                              )
+                            }
                             const price = PACKAGES[id][priceKey]
                             const val   = counts[id][key]
                             const atCapacity = numberOfPeople >= BOAT_CAPACITY
@@ -447,6 +456,11 @@ export default function ReservationPage() {
                                     disableInc={atCapacity && val === 0}
                                   />
                                   <span className="text-[11px] text-navy-400 font-medium">${price} c/u</span>
+                                  {key === 'youth' && (
+                                    <span className="text-[10px] text-navy-400 text-center leading-tight">
+                                      Incluye: {PACKAGES[id].youthLabel}
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             )
@@ -460,7 +474,13 @@ export default function ReservationPage() {
                           <p className="font-semibold text-[13px] text-navy-800 m-0 leading-tight">Niños</p>
                           <p className="text-[11px] text-navy-400 m-0">3 a 11 años</p>
                         </td>
-                        {/* Primera columna: contador centrado */}
+                        {/* Descripción del paquete — cubre las columnas de paquetes de adultos */}
+                        <td className="py-3 px-2" colSpan={PKG_IDS.length - 1}>
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-navy-500 bg-white border border-navy-100 rounded-lg px-2.5 py-1.5 leading-tight">
+                            🍕 agua, sodas y pizza
+                          </span>
+                        </td>
+                        {/* Contador bajo la columna "Paquete Niños" */}
                         <td className="py-3 px-2 text-center">
                           <div className="flex flex-col items-center gap-1">
                             <Counter
@@ -473,19 +493,18 @@ export default function ReservationPage() {
                             <span className="text-[11px] text-navy-400 font-medium">${CHILDREN_PRICE} c/u</span>
                           </div>
                         </td>
-                        {/* Segunda columna: descripción del paquete único */}
-                        <td className="py-3 px-2">
-                          <span className="inline-flex items-center gap-1.5 text-[12px] text-navy-500 bg-white border border-navy-100 rounded-lg px-2.5 py-1.5 leading-tight">
-                            🍕 agua, sodas y pizza
-                          </span>
-                        </td>
                       </tr>
 
                       {/* Fila bebés */}
                       <tr className="border-t border-navy-50 bg-green-50/30">
                         <td className="py-3 pl-1 pr-2">
                           <p className="font-semibold text-[13px] text-navy-800 m-0 leading-tight">Bebés</p>
-                          <p className="text-[11px] text-navy-400 m-0">1 a 3 años · sin asiento</p>
+                          <p className="text-[11px] text-navy-400 m-0">0 a 2 años · sin asiento</p>
+                        </td>
+                        <td className="py-3 px-2" colSpan={PKG_IDS.length - 1}>
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-navy-500 bg-white border border-navy-100 rounded-lg px-2.5 py-1.5 leading-tight">
+                            🍼 sin asiento asignado
+                          </span>
                         </td>
                         <td className="py-3 px-2 text-center">
                           <div className="flex flex-col items-center gap-1">
@@ -499,15 +518,16 @@ export default function ReservationPage() {
                             <span className="text-[11px] font-semibold text-green-600">Gratis</span>
                           </div>
                         </td>
-                        <td className="py-3 px-2">
-                          <span className="inline-flex items-center gap-1.5 text-[12px] text-navy-500 bg-white border border-navy-100 rounded-lg px-2.5 py-1.5 leading-tight">
-                            🍼 sin asiento asignado
-                          </span>
-                        </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
+
+                {/* Aviso bebés */}
+                <p className="flex items-start gap-1.5 text-[12px] text-navy-400 mt-3">
+                  <Info size={13} className="flex-shrink-0 mt-0.5 text-gold-500" />
+                  <span>Los bebés <b className="text-navy-600">mayores de 2 años</b> pagan boleto de niño ($300).</span>
+                </p>
 
                 {/* Advertencia adultos */}
                 <div className={clsx(

@@ -16,6 +16,7 @@ import { BarChart, LineChart, DonutChart } from '@components/ui/Charts'
 const PACKAGE_COLORS: Record<string, string> = {
   CON_COMIDA:   '#F0B429',
   SOLO_BEBIDAS: '#3B82F6',
+  SOLO_CENA:    '#EC4899',
   NINOS:        '#10B981',
 }
 

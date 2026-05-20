@@ -220,7 +220,7 @@
       },
       "CON_COMIDA": {
         "tag": "Premium",
-        "feature1": "Seafood buffet on board",
+        "feature1": "Seafood on board",
         "feature2": "Drinks + live show",
         "feature3": "Complete experience",
         "duration": "3 hours"
@@ -281,11 +281,15 @@
   "packages": {
     "con_comida": {
       "label": "Dinner & Open Bar",
-      "description": "Adults: Dinner buffet + open bar · Teens: Dinner, soda & bottled water"
+      "description": "Adults: Dinner + open bar · Teens: Dinner, soda & bottled water"
     },
     "solo_bebidas": {
       "label": "Open Bar",
       "description": "Adults: Open bar on board · Teens: Sodas & bottled water"
+    },
+    "solo_cena": {
+      "label": "Dinner Only",
+      "description": "Adults: Dinner on board (no open bar)"
     },
     "solo_paseo": {
       "label": "Tour Only",

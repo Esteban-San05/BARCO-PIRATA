@@ -220,7 +220,7 @@
       },
       "CON_COMIDA": {
         "tag": "Premium",
-        "feature1": "Buffet de mariscos a bordo",
+        "feature1": "Mariscos a bordo",
         "feature2": "Bebidas + show en vivo",
         "feature3": "Experiencia completa",
         "duration": "3 horas"
@@ -281,11 +281,15 @@
   "packages": {
     "con_comida": {
       "label": "Cena y Barra Libre",
-      "description": "Adultos: Cena buffet + barra libre · Adolescentes: Cena, soda y agua embotellada"
+      "description": "Adultos: Cena + barra libre · Adolescentes: Cena, soda y agua embotellada"
     },
     "solo_bebidas": {
       "label": "Barra Libre",
       "description": "Adultos: Barra libre a bordo · Adolescentes: Sodas y agua embotellada"
+    },
+    "solo_cena": {
+      "label": "Solo Cena",
+      "description": "Adultos: Cena a bordo (sin barra libre)"
     },
     "solo_paseo": {
       "label": "Solo Paseo",

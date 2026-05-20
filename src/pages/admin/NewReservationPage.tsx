@@ -285,6 +285,16 @@ export default function NewReservationPage() {
                             </td>
                           )
                         }
+                        if (PACKAGES[id].adultsOnly && key === 'youth') {
+                          return (
+                            <td key={id} className="py-3 px-2 text-center">
+                              <span className="inline-block text-[11px] rounded-lg px-2 py-1 select-none"
+                                style={{ background: 'var(--bg-surface-alt)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                                Solo adultos
+                              </span>
+                            </td>
+                          )
+                        }
                         const price = PACKAGES[id][priceKey]
                         const val   = counts[id][key]
                         return (
@@ -311,7 +321,14 @@ export default function NewReservationPage() {
                       <p className="font-semibold text-xs m-0 leading-tight" style={{ color: 'var(--text-title)' }}>Niños</p>
                       <p className="text-[11px] m-0 mt-0.5" style={labelStyle}>3 a 11 años</p>
                     </td>
-                    {/* Contador solo en la primera columna */}
+                    {/* Descripción del paquete — cubre las columnas de paquetes de adultos */}
+                    <td className="py-3 px-2" colSpan={PKG_IDS.length - 1}>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] rounded-lg px-2.5 py-1.5"
+                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                        🍕 agua, sodas y pizza — paquete fijo
+                      </span>
+                    </td>
+                    {/* Contador bajo la columna "Paquete Niños" */}
                     <td className="py-3 px-2 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <Counter
@@ -324,20 +341,19 @@ export default function NewReservationPage() {
                         <span className="text-[11px]" style={labelStyle}>${CHILDREN_PRICE} c/u</span>
                       </div>
                     </td>
-                    {/* Segunda columna: descripción del paquete */}
-                    <td className="py-3 px-2" colSpan={PKG_IDS.length - 1}>
-                      <span className="inline-flex items-center gap-1.5 text-[11px] rounded-lg px-2.5 py-1.5"
-                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                        🍕 agua, sodas y pizza — paquete fijo
-                      </span>
-                    </td>
                   </tr>
 
                   {/* Bebés */}
                   <tr style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-surface-alt)' }}>
                     <td className="py-3 pl-1 pr-2">
                       <p className="font-semibold text-xs m-0 leading-tight" style={{ color: 'var(--text-title)' }}>Bebés</p>
-                      <p className="text-[11px] m-0 mt-0.5" style={labelStyle}>1 a 3 años · sin asiento</p>
+                      <p className="text-[11px] m-0 mt-0.5" style={labelStyle}>0 a 2 años · sin asiento</p>
+                    </td>
+                    <td className="py-3 px-2" colSpan={PKG_IDS.length - 1}>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] rounded-lg px-2.5 py-1.5"
+                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                        🍼 sin asiento asignado
+                      </span>
                     </td>
                     <td className="py-3 px-2 text-center">
                       <div className="flex flex-col items-center gap-1">
@@ -350,12 +366,6 @@ export default function NewReservationPage() {
                         />
                         <span className="text-[11px] font-semibold" style={{ color: '#10B981' }}>Gratis</span>
                       </div>
-                    </td>
-                    <td className="py-3 px-2" colSpan={PKG_IDS.length - 1}>
-                      <span className="inline-flex items-center gap-1.5 text-[11px] rounded-lg px-2.5 py-1.5"
-                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                        🍼 sin asiento asignado
-                      </span>
                     </td>
                   </tr>
                 </tbody>

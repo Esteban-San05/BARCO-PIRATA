@@ -29,9 +29,9 @@ export interface Reservation {
   numberOfPeople: number
   // Desglose por grupo de edad
   adults: number
-  youth: number          // 13-17 años (75%)
-  children: number       // 3-12 años (50%)
-  babies: number         // 1-3 años (gratis)
+  youth: number          // 12-17 años
+  children: number       // 3-11 años
+  babies: number         // 0-2 años (gratis)
   totalPassengers: number // adults + youth + children + babies (tripulación real, calculado en DB)
   adultsCost: number
   youthCost: number

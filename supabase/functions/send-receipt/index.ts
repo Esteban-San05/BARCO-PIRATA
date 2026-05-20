@@ -52,6 +52,7 @@ function json(body: unknown, status = 200, origin: string | null = null): Respon
 const PACKAGE_LABELS: Record<string, string> = {
   CON_COMIDA:   'Con Comida Incluida',
   SOLO_BEBIDAS: 'Solo Bebidas',
+  SOLO_CENA:    'Solo Cena',
   SOLO_PASEO:   'Solo Paseo',
 }
 

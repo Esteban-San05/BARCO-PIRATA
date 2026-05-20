@@ -111,95 +111,77 @@ function pkgLabel(r: Reservation): string {
   return r.packageId.replace(/_/g, ' ')
 }
 
-// Orden preferido para columnas de paquete
-const PKG_ORDER = ['CON_COMIDA', 'SOLO_BEBIDAS', 'NINOS']
+// ─── Filas del reporte (formato del cuaderno de reservaciones) ───────────
+// Columnas: Fecha · Estado · Nombre · Folio · # Perso · Niños · Adol · Adultos ·
+// Cena · Promotor · Especificaciones · Anticipo · Pesos · Dólares · T/C
+// Folio, Promotor, Anticipo, Dólares y T/C quedan en blanco: el sistema no
+// guarda esos datos (columnas presentes para imprimir y llenar a mano).
 
-/**
- * Construye filas Excel — una fila por reservación.
- * Las columnas de pasajeros usan el nombre del paquete en el encabezado,
- * ej. "Adultos CON COMIDA", "Adolescentes SOLO BEBIDAS", "Niños NINOS".
- * Devuelve las filas y la lista ordenada de paquetes encontrados.
- */
+/** Pasajeros que llevan cena: adultos+adolescentes de Cena y Barra Libre + adultos de Solo Cena. */
+function dinnerCount(r: Reservation): number {
+  if (r.packageBreakdown?.length) {
+    let n = 0
+    for (const item of r.packageBreakdown) {
+      if (item.packageId === 'CON_COMIDA')     n += item.adults + item.youth
+      else if (item.packageId === 'SOLO_CENA') n += item.adults
+    }
+    return n
+  }
+  if (r.packageId === 'CON_COMIDA') return r.adults + r.youth
+  if (r.packageId === 'SOLO_CENA')  return r.adults
+  return 0
+}
+
+/** Columna "Niños": muestra los niños y, si hay bebés, los agrega como "niños - bebés". */
+function ninosCell(r: Reservation): string {
+  if (r.children === 0 && r.babies === 0) return ''
+  return r.babies > 0 ? `${r.children} - ${r.babies}` : String(r.children)
+}
+
+/** Una fila por reservación, con las columnas del cuaderno de papel. */
 function buildExcelRows(
   reservations: Reservation[],
   includeDate: boolean,
-): { rows: Record<string, unknown>[]; pkgs: string[] } {
-  // 1. Descubrir todos los paquetes presentes en los datos
-  const pkgSet = new Set<string>()
-  for (const r of reservations) {
-    if (r.packageBreakdown?.length) {
-      for (const item of r.packageBreakdown) pkgSet.add(item.packageId)
-    } else {
-      pkgSet.add(r.packageId)
-    }
-  }
-  const pkgs = [
-    ...PKG_ORDER.filter(p => pkgSet.has(p)),
-    ...[...pkgSet].filter(p => !PKG_ORDER.includes(p)),
-  ]
-
-  // 2. Construir filas
-  const rows = reservations.map(r => {
-    const row: Record<string, unknown> = {
-      ...(includeDate ? { 'Fecha': r.date } : {}),
-      'Hora':     r.time,
-      'Nombre':   r.contactName,
-      'Teléfono': r.contactPhone ?? '–',
-      'Estado':   r.status,
-      'Pago':     r.paymentMethod ?? '–',
-    }
-
-    for (const pkg of pkgs) {
-      const lbl     = pkg.replace(/_/g, ' ')
-      const isNinos = pkg === 'NINOS'
-
-      if (r.packageBreakdown?.length) {
-        const item = r.packageBreakdown.find(i => i.packageId === pkg)
-        if (isNinos) {
-          row[`Niños ${lbl}`] = item?.children ?? ''
-        } else {
-          row[`Adultos ${lbl}`]       = item?.adults || ''
-          row[`Adolescentes ${lbl}`]  = item?.youth  || ''
-        }
-      } else {
-        const match = r.packageId === pkg
-        if (isNinos) {
-          row[`Niños ${lbl}`] = match ? r.children : ''
-        } else {
-          row[`Adultos ${lbl}`]      = match ? (r.adults || '') : ''
-          row[`Adolescentes ${lbl}`] = match ? (r.youth  || '') : ''
-        }
-      }
-    }
-
-    row['Bebés']           = r.babies
-    row['Total Pasajeros'] = r.totalPassengers
-    row['Total']           = r.total
-
+): Record<string, unknown>[] {
+  return reservations.map((r) => {
+    const row: Record<string, unknown> = {}
+    if (includeDate) row['Fecha'] = r.date
+    row['Estado']           = r.status
+    row['Nombre']           = r.contactName
+    row['Folio']            = ''
+    row['# Perso']          = r.totalPassengers
+    row['Niños']            = ninosCell(r)
+    row['Adol']             = r.youth || ''
+    row['Adultos']          = r.adults
+    row['Cena']             = dinnerCount(r) || ''
+    row['Promotor']         = ''
+    row['Especificaciones'] = r.notes ?? ''
+    row['Anticipo']         = ''
+    row['Pesos']            = r.total
+    row['Dólares']          = ''
+    row['T/C']              = ''
     return row
   })
-
-  return { rows, pkgs }
 }
 
-function detailColWidths(includeDate: boolean, pkgs: string[]): { wch: number }[] {
-  const cols: { wch: number }[] = [
-    ...(includeDate ? [{ wch: 12 }] : []),
-    { wch: 9  },  // Hora
+function detailColWidths(includeDate: boolean): { wch: number }[] {
+  return [
+    ...(includeDate ? [{ wch: 12 }] : []),  // Fecha
+    { wch: 11 },  // Estado
     { wch: 26 },  // Nombre
-    { wch: 16 },  // Teléfono
-    { wch: 12 },  // Estado
-    { wch: 14 },  // Pago
+    { wch: 8  },  // Folio
+    { wch: 9  },  // # Perso
+    { wch: 10 },  // Niños
+    { wch: 7  },  // Adol
+    { wch: 8  },  // Adultos
+    { wch: 7  },  // Cena
+    { wch: 16 },  // Promotor
+    { wch: 32 },  // Especificaciones
+    { wch: 10 },  // Anticipo
+    { wch: 12 },  // Pesos
+    { wch: 9  },  // Dólares
+    { wch: 8  },  // T/C
   ]
-  for (const pkg of pkgs) {
-    if (pkg === 'NINOS') {
-      cols.push({ wch: 14 })  // Niños [PKG]
-    } else {
-      cols.push({ wch: 18 }, { wch: 20 })  // Adultos [PKG], Adolescentes [PKG]
-    }
-  }
-  cols.push({ wch: 7 }, { wch: 15 }, { wch: 10 })  // Bebés, Total Pasajeros, Total
-  return cols
 }
 
 /** Devuelve la "clave" y el "label" legible según la granularidad. */
@@ -248,6 +230,7 @@ export const reportService = {
       byPackage: {
         CON_COMIDA:   { count: 0, people: 0, revenue: 0 },
         SOLO_BEBIDAS: { count: 0, people: 0, revenue: 0 },
+        SOLO_CENA:    { count: 0, people: 0, revenue: 0 },
         NINOS:        { count: 0, people: 0, revenue: 0 },
       },
       byPaymentMethod: {},
@@ -304,6 +287,7 @@ export const reportService = {
     const byPackage: RangeReport['byPackage'] = {
       CON_COMIDA:   { count: 0, people: 0, revenue: 0 },
       SOLO_BEBIDAS: { count: 0, people: 0, revenue: 0 },
+      SOLO_CENA:    { count: 0, people: 0, revenue: 0 },
       NINOS:        { count: 0, people: 0, revenue: 0 },
     }
     const byPaymentMethod: RangeReport['byPaymentMethod'] = {}
@@ -379,9 +363,9 @@ export const reportService = {
   //   Exports — Excel
   // ════════════════════════════════════════════════════════════════════
   exportToExcel(report: DailyReport): void {
-    const { rows, pkgs } = buildExcelRows(report.reservations, false)
+    const rows = buildExcelRows(report.reservations, false)
     const ws   = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = detailColWidths(false, pkgs)
+    ws['!cols'] = detailColWidths(false)
     const wb   = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Reservaciones')
     XLSX.writeFile(wb, `reservaciones_${report.date}.xlsx`)
@@ -391,9 +375,9 @@ export const reportService = {
   exportRangeToExcel(report: RangeReport): void {
     const wb = XLSX.utils.book_new()
 
-    const { rows: detailRows, pkgs } = buildExcelRows(report.reservations, true)
+    const detailRows = buildExcelRows(report.reservations, true)
     const wsDetail = XLSX.utils.json_to_sheet(detailRows)
-    wsDetail['!cols'] = detailColWidths(true, pkgs)
+    wsDetail['!cols'] = detailColWidths(true)
     XLSX.utils.book_append_sheet(wb, wsDetail, 'Detalle')
 
     const series = report.series.map((p) => ({

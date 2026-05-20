@@ -9,13 +9,14 @@ export const PACKAGES = {
   CON_COMIDA: {
     id: 'con_comida',
     label: 'Cena y Barra Libre',
-    description: 'Adultos: Cena buffet + barra libre · Adolescentes: Cena, soda y agua embotellada',
+    description: 'Adultos: Cena + barra libre · Adolescentes: Cena, soda y agua embotellada',
     youthLabel: 'Cena, Soda y Agua',
     youthDescription: 'Cena, soda y agua embotellada (12-17 años)',
     pricePerPerson: 700,
     adultPrice:    700,
     youthPrice:    500,
     icon: '🍽️',
+    adultsOnly: false,
   },
   SOLO_BEBIDAS: {
     id: 'solo_bebidas',
@@ -27,6 +28,19 @@ export const PACKAGES = {
     adultPrice:    600,
     youthPrice:    400,
     icon: '🍹',
+    adultsOnly: false,
+  },
+  SOLO_CENA: {
+    id: 'solo_cena',
+    label: 'Solo Cena',
+    description: 'Adultos: Cena a bordo (sin barra libre)',
+    youthLabel: 'No disponible',
+    youthDescription: 'Paquete exclusivo para adultos (18+)',
+    pricePerPerson: 600,
+    adultPrice:    600,
+    youthPrice:    0,
+    icon: '🍴',
+    adultsOnly: true,
   },
   NINOS: {
     id: 'ninos',
@@ -38,6 +52,7 @@ export const PACKAGES = {
     adultPrice:    300,
     youthPrice:    300,
     icon: '🧒',
+    adultsOnly: false,
   },
 } as const
 
@@ -105,11 +120,11 @@ export const COMPANY = {
   shortName: 'Barco Pirata',
   location: 'Recinto Portuario, Puerto Peñasco, Sonora',
   phone: '638 112 3686',
-  phoneWhatsApp: '526381104342',   // formato internacional sin + para wa.me (TEMPORAL: número de prueba)
+  phoneWhatsApp: '526381123686',   // formato internacional sin + para wa.me
   email: 'reydelmar_2004@hotmail.com',
   schedule: 'Jue – Dom: 11:00 AM – 2:00 PM y 4:00 PM – 6:00 PM',
   facebook: 'https://www.facebook.com/PerlaNegraPenasco/about',
-  whatsapp: 'https://wa.me/526381104342',  // TEMPORAL: número de prueba
+  whatsapp: 'https://wa.me/526381123686',
 } as const
 
 // ─── Paginación ───────────────────────────────────────────────────────────

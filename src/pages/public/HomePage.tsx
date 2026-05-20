@@ -32,7 +32,7 @@ export default function HomePage() {
           <p className="text-navy-500">{t('home.packages.subtitle')}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {Object.values(PACKAGES).map((pkg) => (
             <Card
               key={pkg.id}

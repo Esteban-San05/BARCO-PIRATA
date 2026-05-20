@@ -33,16 +33,18 @@ export interface IncomingMessage {
 const PKG_NAMES: Record<string, { es: string; en: string }> = {
   con_comida:   { es: '🍽️ Cena y Barra Libre',     en: '🍽️ Dinner & Open Bar' },
   solo_bebidas: { es: '🍹 Barra Libre',              en: '🍹 Open Bar' },
+  solo_cena:    { es: '🍴 Solo Cena',                en: '🍴 Dinner Only' },
   ninos:        { es: '🧒 Paquete Niños',           en: '🧒 Kids Package' },
 }
 
 // ─── Defaults de paquetes (espejo de src/constants/index.ts:PACKAGES) ─────────
 // Usados cuando business_settings no tiene override o no se puede leer.
 // Las claves coinciden con las del JSONB package_overrides (UPPERCASE).
-const DEFAULT_PKGS_ORDER = ['CON_COMIDA', 'SOLO_BEBIDAS', 'NINOS'] as const
+const DEFAULT_PKGS_ORDER = ['CON_COMIDA', 'SOLO_BEBIDAS', 'SOLO_CENA', 'NINOS'] as const
 const DEFAULT_PKGS: Record<string, PackageOverrideData> = {
   CON_COMIDA:   { label: 'Cena y Barra Libre', icon: '🍽️', adultPrice: 700, youthPrice: 500, description: '', active: true, isCustom: false },
   SOLO_BEBIDAS: { label: 'Barra Libre',         icon: '🍹', adultPrice: 600, youthPrice: 400, description: '', active: true, isCustom: false },
+  SOLO_CENA:    { label: 'Solo Cena',           icon: '🍴', adultPrice: 600, youthPrice: 0,   description: '', active: true, isCustom: false },
   NINOS:        { label: 'Paquete Niños',       icon: '🧒', adultPrice: 300, youthPrice: 300, description: '', active: true, isCustom: false },
 }
 const DEFAULT_CLOSED_WEEKDAYS = [1] // lunes

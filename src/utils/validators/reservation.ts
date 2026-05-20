@@ -44,7 +44,7 @@ function buildReservationSchema() {
       .max(40, tt('validation.peopleMax', { max: 40 })),
 
     // packageId se calcula automáticamente como el paquete dominante; opcional en el form
-    packageId: z.enum(['CON_COMIDA', 'SOLO_BEBIDAS']).optional(),
+    packageId: z.enum(['CON_COMIDA', 'SOLO_BEBIDAS', 'SOLO_CENA', 'NINOS']).optional(),
 
     serviceType: z.enum(['individual', 'grupal']),
 
