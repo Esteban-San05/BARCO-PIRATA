@@ -78,6 +78,15 @@ export function useWhatsAppRedirect(): UseWhatsAppRedirectReturn {
       `*Total a pagar:* ${fmt(reservation.total)}`,
       ``,
       `_El pago puede realizarse por transferencia o en la oficina._`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `⚠️ *IMPORTANTE* ⚠️`,
+      `📍 *Debe pasar a la oficina ANTES DE LAS 2:00 PM* el mismo día de su reservación para *CONFIRMAR su paseo*.`,
+      `❌ De lo contrario, su reservación podría ser cancelada.`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      `📌 *Ubicación de la oficina:*`,
+      `https://maps.app.goo.gl/M2LjqKaHq4mvEsQP9`,
     ].join('\n')
 
     return `https://wa.me/${WHATSAPP_BUSINESS_NUMBER}?text=${encodeURIComponent(message)}`
