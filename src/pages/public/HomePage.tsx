@@ -8,9 +8,13 @@ import { Card } from '@components/ui/Card'
 import { ImageCarousel } from '@components/ui/ImageCarousel'
 import { HeroSection } from '@components/ui/HeroSection'
 import { ReviewsSection } from '@components/ui/ReviewsSection'
+import { PortClosureBanner } from '@components/ui/PortClosureBanner'
+import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
 
 export default function HomePage() {
   const { t } = useTranslation()
+  const { data: bizSettings } = useBusinessSettings()
+  const portClosed = !!bizSettings?.portClosed
 
   // Todos los CTAs llevan a la reservación con la fecha de hoy preseleccionada.
   const todayIso = format(new Date(), 'yyyy-MM-dd')
@@ -18,6 +22,8 @@ export default function HomePage() {
 
   return (
     <div>
+      <PortClosureBanner />
+
       {/* ══════════════════════════════════════════════════
           HERO — Escena animada nocturna del barco pirata
          ══════════════════════════════════════════════════ */}
@@ -47,11 +53,17 @@ export default function HomePage() {
                 {formatCurrency(pkg.pricePerPerson)}
               </div>
               <p className="text-xs text-navy-400 mb-5">{t('home.packages.perPerson')}</p>
-              <Link to={reserveTodayHref} className="w-full">
-                <Button variant="outline" className="w-full group-hover:bg-navy-900 group-hover:text-white transition-colors">
-                  {t('home.packages.reserve')}
+              {portClosed ? (
+                <Button variant="outline" className="w-full opacity-60 cursor-not-allowed" disabled>
+                  {t('portClosure.ctaDisabled')}
                 </Button>
-              </Link>
+              ) : (
+                <Link to={reserveTodayHref} className="w-full">
+                  <Button variant="outline" className="w-full group-hover:bg-navy-900 group-hover:text-white transition-colors">
+                    {t('home.packages.reserve')}
+                  </Button>
+                </Link>
+              )}
             </Card>
           ))}
         </div>

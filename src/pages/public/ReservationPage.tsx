@@ -13,6 +13,8 @@ import { getReservationSchema, type ReservationFormValues } from '@utils/validat
 import { useCreateReservation } from '@features/reservations/hooks/useReservations'
 import { useReservationStore } from '@app/store/reservationStore'
 import { useBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
+import { isSlotMarkedFull } from '@features/settings/utils/closures'
+import { PortClosureBanner } from '@components/ui/PortClosureBanner'
 import { useAvailability, availableInSlot } from '@features/availability/hooks/useAvailability'
 import { useMarinaForecast } from '@hooks/useMarinaForecast'
 import { supabase } from '@lib/supabase'
@@ -199,9 +201,11 @@ export default function ReservationPage() {
   const watchedDate = watch('date')
   const watchedTime = watch('time') ?? null
 
-  const closedWeekdays  = bizSettings?.closedWeekdays  ?? [1]
-  const closedDates     = bizSettings?.closedDates     ?? []
-  const activeTimeSlots = bizSettings?.activeTimeSlots ?? TIME_SLOTS.map(s => s.time)
+  const closedWeekdays    = bizSettings?.closedWeekdays    ?? [1]
+  const closedDates       = bizSettings?.closedDates       ?? []
+  const activeTimeSlots   = bizSettings?.activeTimeSlots   ?? TIME_SLOTS.map(s => s.time)
+  const portClosed        = !!bizSettings?.portClosed
+  const capacityFullSlots = bizSettings?.capacityFullSlots ?? []
 
   const { datos: condData } = useMarinaForecast(watchedDate || null) as any
   const { data: availability, isLoading: availLoading } = useAvailability(watchedDate)
@@ -223,6 +227,14 @@ export default function ReservationPage() {
 
   const onSubmit = async (values: ReservationFormValues) => {
     setServerError(null)
+    if (portClosed) {
+      setServerError(t('portClosure.message'))
+      return
+    }
+    if (isSlotMarkedFull(capacityFullSlots, values.date, values.time)) {
+      setServerError(t('slotFull.hint'))
+      return
+    }
     if (totalAdults === 0) {
       setServerError('Se requiere al menos 1 adulto para realizar la reservación y abordar el barco.')
       return
@@ -314,6 +326,8 @@ export default function ReservationPage() {
 
   return (
     <>
+      <PortClosureBanner />
+
       {/* ── Hero strip ─────────────────────────────────────────────────────── */}
       <section className="rv-hero">
         <div className="relative z-10 max-w-screen-xl mx-auto">
@@ -640,7 +654,8 @@ export default function ReservationPage() {
                       {visibleSlots.map(slot => {
                         const available  = availableInSlot(availability, slot.time)
                         const isPast     = watchedDate === todayIso && slot.time <= nowHHMM
-                        const isFull     = !isPast && !availLoading && !!availability && available <= 0
+                        const adminFull  = isSlotMarkedFull(capacityFullSlots, watchedDate, slot.time)
+                        const isFull     = adminFull || (!isPast && !availLoading && !!availability && available <= 0)
                         const fewLeft    = !isPast && !isFull && !availLoading && !!availability && available <= 5
                         const notEnough  = !isPast && !isFull && !availLoading && !!availability && available < numberOfPeople
                         const disabled   = isPast || isFull || notEnough
@@ -891,17 +906,22 @@ export default function ReservationPage() {
                 {/* CTA */}
                 <button
                   type="submit"
-                  disabled={isPending}
-                  className="w-full mt-4 px-5 py-4 rounded-xl font-display font-black text-[15px] tracking-wider uppercase text-navy-900 flex items-center justify-center gap-2.5 transition-all"
+                  disabled={isPending || portClosed}
+                  className={clsx(
+                    "w-full mt-4 px-5 py-4 rounded-xl font-display font-black text-[15px] tracking-wider uppercase text-navy-900 flex items-center justify-center gap-2.5 transition-all",
+                    portClosed && "opacity-60 cursor-not-allowed"
+                  )}
                   style={{
                     background: 'linear-gradient(180deg,#ffe07a,#e0a82e)',
                     boxShadow: '0 12px 30px -8px rgba(244,197,66,.45), inset 0 1px 0 rgba(255,255,255,.5)',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                  onMouseEnter={e => { if (!portClosed) e.currentTarget.style.transform = 'translateY(-2px)' }}
                   onMouseLeave={e => (e.currentTarget.style.transform = '')}
                 >
-                  {isPending ? t('reservation.sum.processing') : t('reservation.sum.bookAndPay')}
-                  {!isPending && (
+                  {portClosed
+                    ? t('portClosure.ctaDisabled')
+                    : isPending ? t('reservation.sum.processing') : t('reservation.sum.bookAndPay')}
+                  {!isPending && !portClosed && (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M5 12h14M13 5l7 7-7 7"/>
                     </svg>

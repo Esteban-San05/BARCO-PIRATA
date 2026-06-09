@@ -114,13 +114,20 @@ export interface PromotionItem {
   endDate: string | null
 }
 
+export interface CapacityFullSlot {
+  date: string   // 'yyyy-MM-dd'
+  time: string   // 'HH:mm'
+}
+
 export interface BusinessSettings {
-  closedWeekdays:   number[]   // 0=dom … 6=sáb, puede ser vacío o varios días
-  activeTimeSlots:  string[]   // e.g. ['09:00','11:00','13:00','15:00','17:00']
-  boatCapacity:     number
-  closedDates:      string[]   // fechas específicas cerradas 'yyyy-MM-dd'
-  packageOverrides: Record<string, PackageOverrideData>
-  promotions:       PromotionItem[]
+  closedWeekdays:     number[]   // 0=dom … 6=sáb, puede ser vacío o varios días
+  activeTimeSlots:    string[]   // e.g. ['09:00','11:00','13:00','15:00','17:00']
+  boatCapacity:       number
+  closedDates:        string[]   // fechas específicas cerradas 'yyyy-MM-dd'
+  packageOverrides:   Record<string, PackageOverrideData>
+  promotions:         PromotionItem[]
+  portClosed:         boolean              // emergencia: cierre total del puerto
+  capacityFullSlots:  CapacityFullSlot[]   // slots marcados como cupo lleno
 }
 
 export interface ProcessPaymentDto {

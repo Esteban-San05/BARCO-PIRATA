@@ -1,16 +1,18 @@
 import { supabase } from '@lib/supabase'
-import type { BusinessSettings } from '@app-types/index'
+import type { BusinessSettings, CapacityFullSlot } from '@app-types/index'
 import { TIME_SLOTS } from '@constants/index'
 
-const COLS = 'closed_weekdays, active_time_slots, boat_capacity, closed_dates, package_overrides, promotions'
+const COLS = 'closed_weekdays, active_time_slots, boat_capacity, closed_dates, package_overrides, promotions, port_closed, capacity_full_slots'
 
 const mapRow = (row: Record<string, unknown>): BusinessSettings => ({
-  closedWeekdays:   (row.closed_weekdays   as number[] | null) ?? [1],
-  activeTimeSlots:  (row.active_time_slots as string[] | null) ?? TIME_SLOTS.map(s => s.time),
-  boatCapacity:     row.boat_capacity      as number,
-  closedDates:      (row.closed_dates      as string[] | null) ?? [],
-  packageOverrides: (row.package_overrides as BusinessSettings['packageOverrides'] | null) ?? {},
-  promotions:       (row.promotions        as BusinessSettings['promotions']       | null) ?? [],
+  closedWeekdays:    (row.closed_weekdays    as number[] | null) ?? [1],
+  activeTimeSlots:   (row.active_time_slots  as string[] | null) ?? TIME_SLOTS.map(s => s.time),
+  boatCapacity:      row.boat_capacity       as number,
+  closedDates:       (row.closed_dates       as string[] | null) ?? [],
+  packageOverrides:  (row.package_overrides  as BusinessSettings['packageOverrides'] | null) ?? {},
+  promotions:        (row.promotions         as BusinessSettings['promotions']       | null) ?? [],
+  portClosed:        (row.port_closed        as boolean | null) ?? false,
+  capacityFullSlots: (row.capacity_full_slots as CapacityFullSlot[] | null) ?? [],
 })
 
 export const settingsService = {
@@ -31,8 +33,10 @@ export const settingsService = {
     if (settings.activeTimeSlots  !== undefined) patch.active_time_slots = settings.activeTimeSlots
     if (settings.boatCapacity     !== undefined) patch.boat_capacity     = settings.boatCapacity
     if (settings.closedDates      !== undefined) patch.closed_dates      = settings.closedDates
-    if (settings.packageOverrides !== undefined) patch.package_overrides = settings.packageOverrides
-    if (settings.promotions       !== undefined) patch.promotions        = settings.promotions
+    if (settings.packageOverrides  !== undefined) patch.package_overrides   = settings.packageOverrides
+    if (settings.promotions        !== undefined) patch.promotions          = settings.promotions
+    if (settings.portClosed        !== undefined) patch.port_closed         = settings.portClosed
+    if (settings.capacityFullSlots !== undefined) patch.capacity_full_slots = settings.capacityFullSlots
 
     const { data, error } = await supabase
       .from('business_settings')

@@ -6,12 +6,14 @@ import { TIME_SLOTS, BOAT_CAPACITY } from '@constants/index'
 const QUERY_KEY = ['business-settings'] as const
 
 const FALLBACK: BusinessSettings = {
-  closedWeekdays:   [1],
-  activeTimeSlots:  TIME_SLOTS.map(s => s.time),
-  boatCapacity:     BOAT_CAPACITY,
-  closedDates:      [],
-  packageOverrides: {},
-  promotions:       [],
+  closedWeekdays:    [1],
+  activeTimeSlots:   TIME_SLOTS.map(s => s.time),
+  boatCapacity:      BOAT_CAPACITY,
+  closedDates:       [],
+  packageOverrides:  {},
+  promotions:        [],
+  portClosed:        false,
+  capacityFullSlots: [],
 }
 
 export function useBusinessSettings() {

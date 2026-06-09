@@ -1,4 +1,14 @@
 {
+  "portClosure": {
+    "title": "Puerto cerrado temporalmente",
+    "message": "Por causas ajenas a nosotros (condiciones marítimas o decisión de la autoridad portuaria) no podemos zarpar el día de hoy. Las reservaciones están momentáneamente deshabilitadas. Agradecemos su comprensión.",
+    "hint": "Si ya tienes una reservación para hoy, te contactaremos por WhatsApp para reagendar sin costo.",
+    "ctaDisabled": "Reservaciones deshabilitadas"
+  },
+  "slotFull": {
+    "label": "Cupo lleno",
+    "hint": "Elige otro horario disponible."
+  },
   "header": {
     "home": "Inicio",
     "reserve": "Reservar",

@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Clock, CalendarOff, Ship, Save, Check, Plus, X, CloudLightning, Minus } from 'lucide-react'
+import { Clock, CalendarOff, Ship, Save, Check, Plus, X, CloudLightning, Minus, AlertOctagon, Users } from 'lucide-react'
 import { clsx } from 'clsx'
 import { format, parse } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useBusinessSettings, useUpdateBusinessSettings } from '@features/settings/hooks/useBusinessSettings'
+import { usePortClosureNotify } from '@features/settings/hooks/usePortClosureNotify'
 import { useAdminHeaderSlot } from '@lib/AdminHeaderSlot'
 import { fetchPronostico14Dias } from '@services/weatherService'
 import { TIME_SLOTS } from '@constants/index'
 import { Button } from '@components/ui/Button'
 import { CalendarPicker } from '@components/ui/CalendarPicker'
+import type { CapacityFullSlot } from '@app-types/index'
 
 const WEEKDAYS = [
   { value: 1, label: 'Lunes' },
@@ -173,6 +175,390 @@ function ClimaDesfavorable({
   )
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//   Acciones de emergencia (cierre de puerto + notificación WhatsApp)
+// ════════════════════════════════════════════════════════════════════════
+function EmergencySection({
+  portClosed,
+  onToggle,
+}: {
+  portClosed: boolean
+  onToggle: (v: boolean) => void
+}) {
+  const { mutateAsync: prepare, isPending: preparing } = usePortClosureNotify()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [contacts, setContacts] = useState<import('@features/settings/hooks/usePortClosureNotify').PortClosureContact[] | null>(null)
+  const [contactsDate, setContactsDate] = useState<string | null>(null)
+  const [opened, setOpened] = useState<Record<string, boolean>>({})
+  const [notifyError, setNotifyError] = useState<string | null>(null)
+
+  const handleConfirmClose = () => {
+    onToggle(true)
+    setConfirmOpen(false)
+  }
+
+  const handlePrepare = async () => {
+    setNotifyError(null)
+    setContacts(null)
+    setOpened({})
+    try {
+      const res = await prepare()
+      setContacts(res.contacts)
+      setContactsDate(res.date)
+    } catch (err) {
+      setNotifyError(err instanceof Error ? err.message : 'No se pudo preparar la lista')
+    }
+  }
+
+  const handleOpenChat = (contact: import('@features/settings/hooks/usePortClosureNotify').PortClosureContact) => {
+    if (!contact.valid) return
+    window.open(contact.waLink, '_blank', 'noopener,noreferrer')
+    setOpened((prev) => ({ ...prev, [contact.id]: true }))
+  }
+
+  const handleOpenAll = () => {
+    if (!contacts) return
+    setNotifyError(null)
+    const newOpened: Record<string, boolean> = {}
+    let blocked = 0
+    let openedCount = 0
+    for (const c of contacts) {
+      if (!c.valid) continue
+      const w = window.open(c.waLink, '_blank', 'noopener,noreferrer')
+      if (!w) {
+        blocked++
+      } else {
+        newOpened[c.id] = true
+        openedCount++
+      }
+    }
+    setOpened((prev) => ({ ...prev, ...newOpened }))
+    if (blocked > 0) {
+      setNotifyError(
+        `${openedCount} chat${openedCount !== 1 ? 's' : ''} abierto${openedCount !== 1 ? 's' : ''}. ` +
+        `${blocked} fueron bloqueados por el navegador. ` +
+        `Autoriza ventanas emergentes para este sitio (icono junto a la barra de URL) y vuelve a presionar el botón.`,
+      )
+    }
+  }
+
+  return (
+    <section
+      className="rounded-xl p-4 sm:p-6 border-2"
+      style={{
+        background: portClosed ? 'rgba(220,38,38,0.08)' : 'var(--bg-surface)',
+        borderColor: portClosed ? 'rgb(220,38,38)' : 'var(--border)',
+        boxShadow: 'var(--shadow-card)',
+      }}
+    >
+      <header className="flex items-start gap-3 mb-5">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: portClosed ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.1)' }}
+        >
+          <AlertOctagon className="w-5 h-5 text-pirate-600" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="font-display font-bold" style={{ color: 'var(--text-title)' }}>
+            Acciones de emergencia
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Úsalo cuando el puerto cierre repentinamente (mal clima, autoridad portuaria, etc.).
+            Bloquea nuevas reservaciones y muestra un aviso en la página principal.
+          </p>
+        </div>
+      </header>
+
+      {portClosed ? (
+        <div className="space-y-4">
+          <div className="rounded-lg p-4 bg-pirate-50 border border-pirate-200">
+            <p className="text-sm font-bold text-pirate-800 mb-1">
+              🚫 El puerto está CERRADO actualmente
+            </p>
+            <p className="text-xs text-pirate-700">
+              Las reservaciones nuevas están bloqueadas y los clientes ven un mensaje en la página principal.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="accent"
+              size="md"
+              onClick={() => onToggle(false)}
+            >
+              <Check className="w-4 h-4" /> Reabrir puerto
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handlePrepare}
+              isLoading={preparing}
+              disabled={preparing}
+            >
+              📱 Preparar mensajes de WhatsApp para hoy
+            </Button>
+          </div>
+
+          {contacts && (
+            <div className="rounded-lg p-4 bg-navy-50 border border-navy-200 space-y-3">
+              {contacts.length === 0 ? (
+                <p className="text-sm text-navy-700">
+                  No hay reservaciones activas para hoy ({contactsDate}). Nada que notificar.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-navy-800">
+                    {contacts.length} reservación{contacts.length !== 1 ? 'es' : ''} para hoy ({contactsDate}).
+                    Toca cada botón para abrir WhatsApp con el mensaje listo — solo presiona <strong>Enviar</strong>.
+                  </p>
+
+                  {contacts.some((c) => c.valid) && (
+                    <button
+                      type="button"
+                      onClick={handleOpenAll}
+                      className="w-full px-4 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-gold-300 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                    >
+                      🚀 Abrir todos los chats ({contacts.filter((c) => c.valid).length})
+                    </button>
+                  )}
+
+                  <div className="space-y-2">
+                    {contacts.map((c) => {
+                      const isOpened = !!opened[c.id]
+                      return (
+                        <div
+                          key={c.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white border border-navy-100 px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-navy-900 truncate">
+                              {c.name || '(sin nombre)'} · {c.time}
+                            </p>
+                            <p className="text-xs text-navy-500 font-mono">
+                              {c.valid ? c.phone : `${c.rawPhone} ⚠ teléfono inválido`}
+                            </p>
+                          </div>
+                          {c.valid ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenChat(c)}
+                              className={clsx(
+                                'px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5',
+                                isOpened
+                                  ? 'bg-green-100 text-green-700 border border-green-300'
+                                  : 'bg-gold-400 text-navy-900 hover:bg-gold-500',
+                              )}
+                            >
+                              {isOpened ? <><Check className="w-3.5 h-3.5" /> Abierto</> : <>💬 Abrir chat</>}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-pirate-600 font-semibold">No se puede contactar</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="text-[11px] text-navy-500 pt-1">
+                    Los chats se abren en pestañas nuevas. Si el navegador bloquea las ventanas emergentes, autorízalo o abre una por una.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+          {notifyError && (
+            <div className="rounded-lg p-3 bg-pirate-50 border border-pirate-200 text-sm text-pirate-700">
+              ✕ {notifyError}
+            </div>
+          )}
+
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            Recuerda presionar <strong>Guardar</strong> arriba para que el cambio surta efecto.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => setConfirmOpen(true)}
+            className="!border-pirate-400 !text-pirate-700 hover:!bg-pirate-50"
+          >
+            <AlertOctagon className="w-4 h-4" /> Cerrar puerto (emergencia)
+          </Button>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            El barco operará con normalidad mientras esto esté desactivado.
+          </span>
+        </div>
+      )}
+
+      {/* Modal de confirmación */}
+      {confirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setConfirmOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-pirate-100 flex items-center justify-center">
+                <AlertOctagon className="w-6 h-6 text-pirate-600" />
+              </div>
+              <h3 className="font-display font-bold text-lg">¿Cerrar el puerto?</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-2">Esta acción:</p>
+            <ul className="text-sm text-gray-700 space-y-1 mb-4 list-disc pl-5">
+              <li>Bloquea nuevas reservaciones desde la página pública.</li>
+              <li>Muestra un mensaje amable a los visitantes en la página de inicio.</li>
+              <li>No envía mensajes automáticamente — después podrás preparar una lista de chats de WhatsApp con el mensaje listo, y los abres tú para enviar.</li>
+            </ul>
+            <p className="text-xs text-gray-500 mb-5">
+              Tendrás que presionar <strong>Guardar</strong> arriba para que el cierre quede registrado.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="accent"
+                size="sm"
+                onClick={handleConfirmClose}
+                className="!bg-pirate-600 hover:!bg-pirate-700"
+              >
+                Sí, cerrar puerto
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//   Slots con cupo lleno (fecha + horario específico)
+// ════════════════════════════════════════════════════════════════════════
+function FullSlotsSection({
+  slots,
+  activeSlots,
+  onAdd,
+  onRemove,
+  pickingDate,
+  setPickingDate,
+  newDate,
+  setNewDate,
+  newTime,
+  setNewTime,
+}: {
+  slots: CapacityFullSlot[]
+  activeSlots: string[]
+  onAdd: (date: string, time: string) => void
+  onRemove: (date: string, time: string) => void
+  pickingDate: boolean
+  setPickingDate: (v: boolean) => void
+  newDate: string | null
+  setNewDate: (v: string | null) => void
+  newTime: string
+  setNewTime: (v: string) => void
+}) {
+  const canAdd = !!newDate && !!newTime
+  const sorted = [...slots].sort((a, b) =>
+    a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date),
+  )
+
+  const handleAdd = () => {
+    if (!canAdd || !newDate) return
+    onAdd(newDate, newTime)
+    setNewDate(null)
+    setNewTime('')
+  }
+
+  return (
+    <section
+      className="rounded-xl p-4 sm:p-6"
+      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
+    >
+      <header className="flex items-start gap-3 mb-5">
+        <div className="w-10 h-10 rounded-lg bg-gold-100 flex items-center justify-center shrink-0">
+          <Users className="w-5 h-5 text-gold-600" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="font-display font-bold" style={{ color: 'var(--text-title)' }}>
+            Slots con cupo lleno
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Marca fecha + horario que ya están al límite. No se aceptarán nuevas reservaciones en ese slot,
+            pero el resto del calendario sigue normal.
+          </p>
+        </div>
+      </header>
+
+      {sorted.length === 0 ? (
+        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Sin slots marcados como llenos.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {sorted.map(({ date, time }) => (
+            <div
+              key={`${date}-${time}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-50 border border-gold-200 text-sm"
+            >
+              <Users className="w-3.5 h-3.5 text-gold-600 shrink-0" />
+              <span className="font-medium text-gold-800 capitalize">
+                {format(parse(date, 'yyyy-MM-dd', new Date()), "EEE d 'de' MMM", { locale: es })} · {time}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemove(date, time)}
+                className="ml-1 text-gold-500 hover:text-gold-800 transition-colors"
+                aria-label="Quitar slot"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Formulario agregar */}
+      <div className="rounded-xl border-2 border-dashed p-4 space-y-3" style={{ borderColor: 'var(--border)' }}>
+        <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+          Marcar slot lleno
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => setPickingDate(true)}>
+            <CalendarOff className="w-4 h-4" />
+            {newDate
+              ? format(parse(newDate, 'yyyy-MM-dd', new Date()), "EEE d 'de' MMM", { locale: es })
+              : 'Elegir fecha'}
+          </Button>
+          <select
+            value={newTime}
+            onChange={(e) => setNewTime(e.target.value)}
+            className="px-3 py-2 rounded-lg border text-sm font-mono"
+            style={{ background: 'var(--bg-surface-alt)', borderColor: 'var(--border)', color: 'var(--text-body)' }}
+          >
+            <option value="">Elegir horario…</option>
+            {[...activeSlots].sort().map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <Button variant="accent" size="sm" onClick={handleAdd} disabled={!canAdd}>
+            <Plus className="w-4 h-4" /> Marcar lleno
+          </Button>
+        </div>
+        <CalendarPicker
+          value={null}
+          onChange={(iso) => { setNewDate(iso); setPickingDate(false) }}
+          isOpen={pickingDate}
+          onClose={() => setPickingDate(false)}
+          adminMode
+        />
+      </div>
+    </section>
+  )
+}
+
 export default function SchedulePage() {
   const { data: settings, isLoading, isPlaceholderData } = useBusinessSettings()
   const { mutateAsync: save, isPending: saving } = useUpdateBusinessSettings()
@@ -181,11 +567,16 @@ export default function SchedulePage() {
   const [saveError,  setSaveError]  = useState<string | null>(null)
   const initializedRef = useRef(false)
 
-  const [closedWeekdays, setClosedWeekdays] = useState<number[]>([1])
-  const [activeSlots,    setActiveSlots]    = useState<string[]>(TIME_SLOTS.map(s => s.time))
-  const [boatCapacity,   setBoatCapacity]   = useState(40)
-  const [closedDates,    setClosedDates]    = useState<string[]>([])
-  const [pickingDate,    setPickingDate]    = useState(false)
+  const [closedWeekdays,    setClosedWeekdays]    = useState<number[]>([1])
+  const [activeSlots,       setActiveSlots]       = useState<string[]>(TIME_SLOTS.map(s => s.time))
+  const [boatCapacity,      setBoatCapacity]      = useState(40)
+  const [closedDates,       setClosedDates]       = useState<string[]>([])
+  const [portClosed,        setPortClosed]        = useState(false)
+  const [capacityFullSlots, setCapacityFullSlots] = useState<CapacityFullSlot[]>([])
+  const [pickingDate,       setPickingDate]       = useState(false)
+  const [pickingFullDate,   setPickingFullDate]   = useState(false)
+  const [newFullDate,       setNewFullDate]       = useState<string | null>(null)
+  const [newFullTime,       setNewFullTime]       = useState<string>('')
   const [newHour,        setNewHour]        = useState('')
   const [newMinute,      setNewMinute]      = useState('')
   const [newPeriod,      setNewPeriod]      = useState<'AM' | 'PM'>('AM')
@@ -207,6 +598,8 @@ export default function SchedulePage() {
     setActiveSlots(settings.activeTimeSlots ?? TIME_SLOTS.map(s => s.time))
     setBoatCapacity(settings.boatCapacity)
     setClosedDates(settings.closedDates)
+    setPortClosed(settings.portClosed)
+    setCapacityFullSlots(settings.capacityFullSlots ?? [])
     initializedRef.current = true
   }, [settings, isPlaceholderData])
 
@@ -280,13 +673,20 @@ export default function SchedulePage() {
   const handleSave = useCallback(async () => {
     setSaveError(null)
     try {
-      await save({ closedWeekdays, activeTimeSlots: activeSlots, boatCapacity, closedDates })
+      await save({
+        closedWeekdays,
+        activeTimeSlots: activeSlots,
+        boatCapacity,
+        closedDates,
+        portClosed,
+        capacityFullSlots,
+      })
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Error al guardar')
     }
-  }, [save, closedWeekdays, activeSlots, boatCapacity, closedDates])
+  }, [save, closedWeekdays, activeSlots, boatCapacity, closedDates, portClosed, capacityFullSlots])
 
   // Enviar botón de guardar al header
   useEffect(() => {
@@ -323,6 +723,32 @@ export default function SchedulePage() {
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
         Configura los días y horarios en que opera el barco.
       </p>
+
+      {/* ── Acciones de emergencia ── */}
+      <EmergencySection
+        portClosed={portClosed}
+        onToggle={setPortClosed}
+      />
+
+      {/* ── Slots con cupo lleno ── */}
+      <FullSlotsSection
+        slots={capacityFullSlots}
+        activeSlots={activeSlots}
+        onAdd={(date, time) => {
+          setCapacityFullSlots(prev =>
+            prev.some(s => s.date === date && s.time === time) ? prev : [...prev, { date, time }],
+          )
+        }}
+        onRemove={(date, time) => {
+          setCapacityFullSlots(prev => prev.filter(s => !(s.date === date && s.time === time)))
+        }}
+        pickingDate={pickingFullDate}
+        setPickingDate={setPickingFullDate}
+        newDate={newFullDate}
+        setNewDate={setNewFullDate}
+        newTime={newFullTime}
+        setNewTime={setNewFullTime}
+      />
 
       {/* ── Fila 1: Día de cierre + Capacidad (2 columnas) ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -1,4 +1,14 @@
 {
+  "portClosure": {
+    "title": "Port temporarily closed",
+    "message": "Due to circumstances beyond our control (sea conditions or harbor authority decision) we cannot sail today. Bookings are momentarily disabled. We appreciate your understanding.",
+    "hint": "If you already have a booking for today, we will contact you via WhatsApp to reschedule at no extra cost.",
+    "ctaDisabled": "Bookings disabled"
+  },
+  "slotFull": {
+    "label": "Sold out",
+    "hint": "Please choose another available time."
+  },
   "header": {
     "home": "Home",
     "reserve": "Book",
