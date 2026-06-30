@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock, LogOut, Menu, Shield, DatabaseBackup, Package, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, CalendarCheck, BarChart3, Settings, Clock, LogOut, Menu, Shield, DatabaseBackup, Package } from 'lucide-react'
 import { useAuth } from '@app/providers'
 import { COMPANY } from '@constants/index'
 import { AdminHeaderSlotProvider, useAdminHeaderSlot } from '@lib/AdminHeaderSlot'
@@ -10,7 +10,6 @@ const navItems = [
   { to: '/admin',               icon: LayoutDashboard, label: 'Dashboard',     end: true  },
   { to: '/admin/reservaciones', icon: CalendarCheck,   label: 'Reservaciones', end: false },
   { to: '/admin/reportes',      icon: BarChart3,       label: 'Reportes',      end: false },
-  { to: '/admin/manifiestos',   icon: ClipboardList,   label: 'Manifiestos',   end: false },
   { to: '/admin/horarios',      icon: Clock,           label: 'Horarios',      end: false },
   { to: '/admin/paquetes',      icon: Package,         label: 'Paquetes',      end: false },
   { to: '/admin/bitacora',      icon: Shield,          label: 'Bitácora',      end: false },
@@ -27,7 +26,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/bitacora':      'Bitácora de Accesos',
   '/admin/respaldo':      'Respaldo y Recuperación',
   '/admin/paquetes':      'Paquetes y Promociones',
-  '/admin/manifiestos':  'Manifiestos de Pasajeros',
 }
 
 export function AdminLayout() {

@@ -13,7 +13,6 @@ import { Button } from '@components/ui/Button'
 import { Card } from '@components/ui/Card'
 import { StatusBadge } from '@components/ui/Badge'
 import { LoadingSpinner } from '@components/ui/LoadingSpinner'
-import { PassengerListEditor } from '@components/admin/PassengerListEditor'
 
 export default function SalePage() {
   const { reservationId } = useParams<{ reservationId: string }>()
@@ -237,19 +236,6 @@ export default function SalePage() {
             Folio: <span className="font-mono text-navy-600">{reservation.id.slice(0, 8).toUpperCase()}</span>
           </p>
         </Card>
-
-        {/* ── Manifiesto de pasajeros ───────────────────────────────────── */}
-        {!isCancelada && (
-          <PassengerListEditor
-            reservationId={reservation.id}
-            counts={{
-              adults:   reservation.adults,
-              youth:    reservation.youth,
-              children: reservation.children,
-              babies:   reservation.babies,
-            }}
-          />
-        )}
 
         {/* ── Panel de cobro ────────────────────────────────────────────── */}
         {!isPagada && !isCancelada && (

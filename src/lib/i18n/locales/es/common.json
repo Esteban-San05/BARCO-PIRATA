@@ -291,7 +291,7 @@
   "packages": {
     "con_comida": {
       "label": "Cena y Barra Libre",
-      "description": "Adultos: Cena + barra libre · Adolescentes: Cena, soda y agua embotellada"
+      "description": "Adultos: Cena + barra libre · Adolescentes: Cena, soda y agua embotellada. Cena: fajitas de pollo con guarnición."
     },
     "solo_bebidas": {
       "label": "Barra Libre",
@@ -299,7 +299,7 @@
     },
     "solo_cena": {
       "label": "Solo Cena",
-      "description": "Adultos: Cena a bordo (sin barra libre)"
+      "description": "Adultos: Cena a bordo (sin barra libre). Cena: fajitas de pollo con guarnición."
     },
     "solo_paseo": {
       "label": "Solo Paseo",

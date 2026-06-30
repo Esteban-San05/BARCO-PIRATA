@@ -419,11 +419,17 @@ export default function ReservationPage() {
                         </th>
                         {PKG_IDS.map(id => {
                           const p = PACKAGES[id]
+                          const includesDinner = id === 'CON_COMIDA' || id === 'SOLO_CENA'
                           return (
-                            <th key={id} className="pb-3 px-2 text-center">
+                            <th key={id} className="pb-3 px-2 text-center align-top">
                               <div className="inline-flex flex-col items-center gap-0.5">
                                 <span className="text-[18px]">{p.icon}</span>
                                 <span className="text-[12px] font-bold text-navy-800 leading-tight">{p.label}</span>
+                                {includesDinner && (
+                                  <span className="text-[10px] font-normal text-navy-400 leading-tight mt-0.5 max-w-[110px]">
+                                    Fajitas de pollo con guarnición
+                                  </span>
+                                )}
                               </div>
                             </th>
                           )

@@ -291,7 +291,7 @@
   "packages": {
     "con_comida": {
       "label": "Dinner & Open Bar",
-      "description": "Adults: Dinner + open bar · Teens: Dinner, soda & bottled water"
+      "description": "Adults: Dinner + open bar · Teens: Dinner, soda & bottled water. Dinner: chicken fajitas with side."
     },
     "solo_bebidas": {
       "label": "Open Bar",
@@ -299,7 +299,7 @@
     },
     "solo_cena": {
       "label": "Dinner Only",
-      "description": "Adults: Dinner on board (no open bar)"
+      "description": "Adults: Dinner on board (no open bar). Dinner: chicken fajitas with side."
     },
     "solo_paseo": {
       "label": "Tour Only",

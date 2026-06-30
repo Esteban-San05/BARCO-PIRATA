@@ -1,0 +1,65 @@
+# Vercel-only ignores. Vercel uses this INSTEAD of .gitignore when present,
+# so it must include everything from .gitignore plus deploy-only exclusions.
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Builds
+dist
+dist-ssr
+build
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+*.swo
+*.sw?
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Testing
+coverage
+.nyc_output
+
+# TypeScript
+*.tsbuildinfo
+.tscache
+
+# Caches / temp
+.cache
+.temp
+.vercel
+.supabase
+
+# Tooling local state — NOT needed in build (this was the 2GB culprit)
+.claude
+.cursor
+
+# Project artifacts not required for Vite frontend build.
+# Leading "/" anchors to repo root — without it, "supabase" would also match src/lib/supabase.
+/supabase
+/docs
+/.github
+/tests

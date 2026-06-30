@@ -8,7 +8,6 @@ import { formatDate, formatTime, formatCurrency } from '@utils/formatters'
 import { Button } from '@components/ui/Button'
 import { Card } from '@components/ui/Card'
 import { useWhatsAppRedirect } from '@features/reservations/hooks/useWhatsAppRedirect'
-import { PassengerListEditor } from '@components/admin/PassengerListEditor'
 
 export default function ConfirmationPage() {
   const { t } = useTranslation()
@@ -189,17 +188,6 @@ export default function ConfirmationPage() {
           : <><Download className="w-4 h-4" /> Guardar comprobante como imagen</>
         }
       </button>
-
-      {/* Lista de pasajeros para Capitanía — fuera del ref para no incluirla en la imagen */}
-      <PassengerListEditor
-        reservationId={reservation.id}
-        counts={{
-          adults:   reservation.adults,
-          youth:    reservation.youth,
-          children: reservation.children,
-          babies:   reservation.babies,
-        }}
-      />
 
       <div className="mt-3 flex gap-3">
         <Link to="/" className="flex-1">

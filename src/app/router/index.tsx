@@ -12,7 +12,6 @@ const ReservationPage    = lazy(() => import('@pages/public/ReservationPage'))
 const ConfirmationPage   = lazy(() => import('@pages/public/ConfirmationPage'))
 const ClimaPage          = lazy(() => import('@pages/public/ClimaPage'))
 const GalleryPage        = lazy(() => import('@pages/public/GalleryPage'))
-const PasajerosPage      = lazy(() => import('@pages/public/PasajerosPage'))
 
 const LoginPage          = lazy(() => import('@pages/admin/LoginPage'))
 const DashboardPage      = lazy(() => import('@pages/admin/DashboardPage'))
@@ -26,7 +25,6 @@ const BackupPage            = lazy(() => import('@pages/admin/BackupPage'))
 const NewReservationPage    = lazy(() => import('@pages/admin/NewReservationPage'))
 const EditReservationPage   = lazy(() => import('@pages/admin/EditReservationPage'))
 const PaquetesPage          = lazy(() => import('@pages/admin/PaquetesPage'))
-const ManifiestosPage       = lazy(() => import('@pages/admin/ManifiestosPage'))
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -48,7 +46,6 @@ export const router = createBrowserRouter([
       { path: '/reservar/confirmacion', element: withSuspense(<ConfirmationPage />) },
       { path: '/clima',                 element: withSuspense(<ClimaPage />) },
       { path: '/galeria',               element: withSuspense(<GalleryPage />) },
-      { path: '/pasajeros/:reservationId', element: withSuspense(<PasajerosPage />) },
     ],
   },
 
@@ -79,7 +76,6 @@ export const router = createBrowserRouter([
       { path: '/admin/bitacora',                 element: withSuspense(<BitacoraPage />) },
       { path: '/admin/respaldo',                 element: withSuspense(<BackupPage />) },
       { path: '/admin/paquetes',                 element: withSuspense(<PaquetesPage />) },
-      { path: '/admin/manifiestos',              element: withSuspense(<ManifiestosPage />) },
     ],
   },
 
