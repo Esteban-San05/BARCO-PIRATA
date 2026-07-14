@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, Clock, MessageCircle } from 'lucide-react'
+import { MapPin, Phone, Mail, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { COMPANY } from '@constants/index'
 
@@ -89,14 +89,10 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Horario */}
+          {/* Más información */}
           <div>
-            <h3 className="text-white font-semibold mb-3">{t('footer.schedule')}</h3>
-            <div className="flex items-start gap-2 text-sm">
-              <Clock className="w-4 h-4 text-gold-400 mt-0.5 shrink-0" />
-              {COMPANY.schedule}
-            </div>
-            <div className="flex items-center gap-2 text-sm mt-3 text-navy-300">
+            <h3 className="text-white font-semibold mb-3">{t('footer.moreInfo')}</h3>
+            <div className="flex items-center gap-2 text-sm text-navy-300">
               <Phone className="w-4 h-4 text-gold-400 shrink-0" />
               <span>
                 {t('footer.callPrefix')}{' '}
